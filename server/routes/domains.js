@@ -1,5 +1,6 @@
-// server/routes/domains.js — Domain availability check via GoDaddy API
-// POST /check — accepts { domains: [...] }, returns { results: [...] }
+// server/routes/domains.js — Domain availability check via GoDaddy API + manual registrar links
+// POST /check — queries GoDaddy for availability/price, includes links to check on other registrars
+// POST /suggest — AI-powered domain suggestions via Claude
 
 const express = require('express');
 const axios = require('axios');
@@ -10,19 +11,51 @@ const GODADDY_BASE = 'https://api.godaddy.com';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// POST /check
-router.post('/check', async (req, res) => {
+// ─── GoDaddy check ───────────────────────────────────────────────────────────
+async function checkGoDaddy(domain) {
   const apiKey = process.env.DOMAIN_API_KEY;
   const apiSecret = process.env.DOMAIN_API_SECRET;
+  if (!apiKey || !apiSecret) return null;
 
-  // 503 if credentials missing
-  if (!apiKey || !apiSecret) {
+  try {
+    const { data } = await axios.get(`${GODADDY_BASE}/v1/domains/available`, {
+      params: { domain },
+      headers: { Authorization: `sso-key ${apiKey}:${apiSecret}` }
+    });
+    return {
+      registrar: 'GoDaddy',
+      available: data.available,
+      price: typeof data.price === 'number' ? data.price / 1_000_000 : null,
+      currency: data.currency || 'USD',
+      link: `https://www.godaddy.com/domainsearch/find?domainToCheck=${domain}`
+    };
+  } catch (err) {
+    return { registrar: 'GoDaddy', available: null, price: null, currency: null, error: err.response?.data?.message || err.message };
+  }
+}
+
+// ─── Manual check links — pre-filled search URLs for registrars without APIs ─
+function getManualLinks(domain) {
+  const name = domain.split('.')[0];
+  return [
+    { registrar: 'Papaki', link: `https://www.papaki.com/en/domain-search.htm?domain=${domain}` },
+    { registrar: 'Tophost', link: `https://www.tophost.gr/domain-names?search=${domain}` },
+    { registrar: 'Namecheap', link: `https://www.namecheap.com/domains/registration/results/?domain=${domain}` },
+    { registrar: 'Cloudflare', link: `https://www.cloudflare.com/products/registrar/` },
+    { registrar: 'Gandi', link: `https://shop.gandi.net/en/domain/suggest?search=${name}` },
+  ];
+}
+
+// POST /check
+router.post('/check', async (req, res) => {
+  const hasGoDaddy = process.env.DOMAIN_API_KEY && process.env.DOMAIN_API_SECRET;
+
+  if (!hasGoDaddy) {
     return res.status(503).json({
-      error: 'Domain API not configured. Set DOMAIN_API_KEY and DOMAIN_API_SECRET.'
+      error: 'Domain API not configured. Set DOMAIN_API_KEY and DOMAIN_API_SECRET (GoDaddy).'
     });
   }
 
-  // 400 if domains missing or empty
   const { domains } = req.body || {};
   if (!Array.isArray(domains) || domains.length === 0) {
     return res.status(400).json({ error: 'At least one domain required' });
@@ -32,34 +65,22 @@ router.post('/check', async (req, res) => {
 
   for (let i = 0; i < domains.length; i++) {
     const domain = domains[i];
+    const godaddyResult = await checkGoDaddy(domain);
 
-    try {
-      const { data } = await axios.get(`${GODADDY_BASE}/v1/domains/available`, {
-        params: { domain },
-        headers: {
-          Authorization: `sso-key ${apiKey}:${apiSecret}`
-        }
-      });
+    results.push({
+      domain,
+      available: godaddyResult?.available ?? null,
+      bestPrice: godaddyResult?.price ?? null,
+      bestRegistrar: godaddyResult?.available ? 'GoDaddy' : null,
+      currency: godaddyResult?.currency ?? null,
+      registrars: godaddyResult ? [godaddyResult] : [],
+      manualLinks: getManualLinks(domain),
+      error: godaddyResult?.error || null
+    });
 
-      results.push({
-        domain: data.domain || domain,
-        available: data.available,
-        price: typeof data.price === 'number' ? data.price / 1_000_000 : null,
-        currency: data.currency || null
-      });
-    } catch (err) {
-      results.push({
-        domain,
-        available: null,
-        price: null,
-        currency: null,
-        error: err.response?.data?.message || err.message || 'Unknown error'
-      });
-    }
-
-    // Rate-limit: 300ms delay between requests
+    // Rate-limit between domains
     if (i < domains.length - 1) {
-      await sleep(300);
+      await sleep(400);
     }
   }
 

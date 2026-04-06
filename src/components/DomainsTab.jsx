@@ -75,8 +75,8 @@ export default function DomainsTab({ lead, onSave, toast }) {
 
   // Summary computation
   const available = results ? results.filter(r => r.available === true) : []
-  const cheapest = available.length
-    ? Math.min(...available.filter(r => r.price != null).map(r => r.price))
+  const cheapestResult = available.length
+    ? available.filter(r => r.bestPrice != null).sort((a, b) => a.bestPrice - b.bestPrice)[0]
     : null
 
   return (
@@ -135,10 +135,11 @@ export default function DomainsTab({ lead, onSave, toast }) {
         <div>
           {/* Summary line */}
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10, color: 'var(--text)' }}>
-            {available.length} available{cheapest != null && cheapest !== Infinity ? ` · cheapest: €${cheapest.toFixed(2)}` : ''}
+            {available.length} available
+            {cheapestResult ? ` · best: $${cheapestResult.bestPrice.toFixed(2)} at ${cheapestResult.bestRegistrar}` : ''}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {results.map((r, i) => {
               const isAvailable = r.available === true
               const isError = r.available == null && r.error
@@ -147,24 +148,45 @@ export default function DomainsTab({ lead, onSave, toast }) {
 
               return (
                 <Card key={i} p="0.75rem" style={{ borderLeft: `3px solid ${borderColor}`, background: bgColor }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{r.domain}</span>
-                      {isAvailable && (
-                        <Badge color="green" style={{ marginLeft: 8 }}>Available</Badge>
-                      )}
-                      {!isAvailable && !isError && (
-                        <Badge color="gray" style={{ marginLeft: 8 }}>Taken</Badge>
-                      )}
-                      {isError && (
-                        <Badge color="red" style={{ marginLeft: 8 }}>Error</Badge>
-                      )}
+                      {isAvailable && <Badge color="green">Available</Badge>}
+                      {!isAvailable && !isError && <Badge color="gray">Taken</Badge>}
+                      {isError && <Badge color="red">Error</Badge>}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-                      {isAvailable && r.price != null ? `€${r.price.toFixed(2)}` : ''}
-                      {isError && <span style={{ fontSize: 11, color: 'var(--red)' }}>{r.error}</span>}
-                    </div>
+                    {isAvailable && r.bestPrice != null && (
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
+                        ${r.bestPrice.toFixed(2)} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)' }}>({r.bestRegistrar})</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Per-registrar prices */}
+                  {isAvailable && r.registrars?.length > 1 && (
+                    <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>
+                      {r.registrars.filter(reg => reg.available && reg.price != null).map((reg, j) => (
+                        <span key={j}>
+                          {reg.registrar}: ${reg.price.toFixed(2)}
+                          {reg.registrar === r.bestRegistrar && <span style={{ color: 'var(--green)', marginLeft: 2 }}>✓</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Manual check links for Greek registrars */}
+                  {r.manualLinks?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 10, fontSize: 11, marginTop: 4 }}>
+                      {r.manualLinks.map((ml, j) => (
+                        <a key={j} href={ml.link} target="_blank" rel="noreferrer"
+                          style={{ color: 'var(--blue)', textDecoration: 'none' }}>
+                          Check on {ml.registrar} →
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {isError && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 2 }}>{r.error}</div>}
                 </Card>
               )
             })}
