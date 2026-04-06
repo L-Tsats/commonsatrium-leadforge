@@ -275,6 +275,13 @@ export async function refreshLeadPhotos(lead) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
+function toSlugInline(name) {
+  const greek = {'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o','ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'}
+  const transliterated = (name || 'site').toLowerCase().split('').map(c => greek[c] || c).join('')
+  const slug = transliterated.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
+  return slug || 'unnamed-lead'
+}
+
 export async function searchAndEnrich({ location, category, minRating, minReviews, maxResults }) {
   const query = `${category} in ${location}`
   let allRaw = []
@@ -341,7 +348,7 @@ function formatLead(place, d, category) {
     screenshotFiles:[],
     demoUrl:        '',
     notes:          '',
-    slug:           (d.name || place.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50),
+    slug:           toSlugInline(d.name || place.name || ''),
     createdAt:      new Date().toISOString()
   }
 }
