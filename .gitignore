@@ -1,0 +1,9 @@
+node_modules/
+.env
+public/
+screenshots/
+sites/
+data/
+leads/
+dist/
+.DS_Store

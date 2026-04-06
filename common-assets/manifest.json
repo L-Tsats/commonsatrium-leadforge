@@ -1,0 +1,985 @@
+{
+  "lined-paper-fountain-pen-texture.jpg": {
+    "category": "textures",
+    "description": "Close-up of a fountain pen writing on lined paper, perfect for adding an elegant handwritten feel to professional or educational websites.",
+    "tags": [
+      "paper",
+      "writing",
+      "fountain-pen",
+      "elegant",
+      "professional"
+    ],
+    "businessTypes": [
+      "law-firms",
+      "consultants",
+      "education",
+      "publishing",
+      "financial-services"
+    ],
+    "originalName": "aaron-burden-y02jEX_B0O0-unsplash.jpg"
+  },
+  "hands-holding-salon-tools-placeholder.jpg": {
+    "category": "placeholders",
+    "description": "Multiple hands holding various hair styling tools and brushes against a clean background, ideal for salon and beauty service websites.",
+    "tags": [
+      "salon",
+      "beauty",
+      "tools",
+      "hands",
+      "professional"
+    ],
+    "businessTypes": [
+      "salons",
+      "beauty-services",
+      "spas",
+      "hair-stylists",
+      "barbershops"
+    ],
+    "originalName": "adam-winger-KVVjmb3IIL8-unsplash.jpg"
+  },
+  "modern-salon-interior-background.jpg": {
+    "category": "backgrounds",
+    "description": "Clean, modern salon interior with styling stations and large windows, perfect as a hero background for beauty and wellness businesses.",
+    "tags": [
+      "salon",
+      "interior",
+      "modern",
+      "professional",
+      "clean"
+    ],
+    "businessTypes": [
+      "salons",
+      "spas",
+      "beauty-services",
+      "wellness-centers",
+      "barbershops"
+    ],
+    "originalName": "adam-winger-VjRpkGtS55w-unsplash.jpg"
+  },
+  "modern-circular-building-interior-background.jpg": {
+    "category": "backgrounds",
+    "description": "Impressive multi-level circular building interior with curved architecture and natural lighting, suitable for corporate and institutional websites.",
+    "tags": [
+      "architecture",
+      "modern",
+      "corporate",
+      "interior",
+      "professional"
+    ],
+    "businessTypes": [
+      "corporations",
+      "universities",
+      "hospitals",
+      "government",
+      "tech-companies"
+    ],
+    "originalName": "aditya-sethia-C9sKI1CGlP8-unsplash.jpg"
+  },
+  "classical-columns-interior-background.jpg": {
+    "category": "backgrounds",
+    "description": "Majestic classical architecture with ornate columns and detailed stonework, ideal for prestigious institutions and traditional professional services.",
+    "tags": [
+      "classical",
+      "columns",
+      "architecture",
+      "prestigious",
+      "traditional"
+    ],
+    "businessTypes": [
+      "law-firms",
+      "museums",
+      "universities",
+      "government",
+      "financial-services"
+    ],
+    "originalName": "adrien-delforge-0LUqdizULdY-unsplash.jpg"
+  },
+  "small-chihuahua-veterinary-exam.jpg": {
+    "category": "placeholders",
+    "description": "Small chihuahua dog being gently held during a veterinary examination, perfect for animal healthcare and pet service websites.",
+    "tags": [
+      "veterinary",
+      "pet-care",
+      "chihuahua",
+      "medical-exam",
+      "animal-health"
+    ],
+    "businessTypes": [
+      "veterinary-clinics",
+      "pet-services",
+      "animal-hospitals",
+      "pet-care"
+    ],
+    "originalName": "anya-prygunova-u2H8mUzoF2Q-unsplash.jpg"
+  },
+  "modern-living-room-concrete-wall.jpg": {
+    "category": "backgrounds",
+    "description": "Contemporary living room with concrete walls and large windows, ideal for architecture, interior design, and real estate websites.",
+    "tags": [
+      "modern-interior",
+      "concrete-wall",
+      "living-room",
+      "contemporary",
+      "architecture"
+    ],
+    "businessTypes": [
+      "interior-design",
+      "architecture",
+      "real-estate",
+      "furniture",
+      "home-decor"
+    ],
+    "originalName": "aranprime-KbytCpI1i5I-unsplash.jpg"
+  },
+  "pharmacy-medicine-storage-room.jpg": {
+    "category": "backgrounds",
+    "description": "Well-organized pharmaceutical storage room with shelves of medications, suitable for healthcare and pharmacy websites.",
+    "tags": [
+      "pharmacy",
+      "medicine-storage",
+      "healthcare",
+      "pharmaceutical",
+      "medical-supplies"
+    ],
+    "businessTypes": [
+      "pharmacies",
+      "healthcare",
+      "medical-facilities",
+      "pharmaceutical-companies"
+    ],
+    "originalName": "arpad-czapp-tvP6pCnq9iI-unsplash.jpg"
+  },
+  "medical-instruments-black-white.jpg": {
+    "category": "placeholders",
+    "description": "Professional medical instruments arranged on white surface in black and white, perfect for healthcare and medical service websites.",
+    "tags": [
+      "medical-tools",
+      "healthcare",
+      "professional",
+      "black-white",
+      "clinical"
+    ],
+    "businessTypes": [
+      "medical-clinics",
+      "healthcare",
+      "surgical-services",
+      "medical-equipment"
+    ],
+    "originalName": "arthur-humeau-pu20JkUx--A-unsplash.jpg"
+  },
+  "modern-dental-office-interior.jpg": {
+    "category": "backgrounds",
+    "description": "A clean, modern dental office with professional equipment and bright lighting, perfect for healthcare website headers.",
+    "tags": [
+      "dental-office",
+      "medical",
+      "healthcare",
+      "clean",
+      "modern",
+      "professional",
+      "equipment",
+      "bright"
+    ],
+    "businessTypes": [
+      "dental-clinics",
+      "medical-practices",
+      "healthcare",
+      "orthodontists",
+      "oral-surgery"
+    ],
+    "originalName": "benyamin-bohlouli-e7MJLM5VGjY-unsplash.jpg"
+  },
+  "dog-receiving-medicine-syringe.jpg": {
+    "category": "placeholders",
+    "description": "A husky puppy being given oral medication from a syringe, perfect for veterinary websites or pet care services.",
+    "tags": [
+      "dog",
+      "puppy",
+      "husky",
+      "medicine",
+      "syringe",
+      "veterinary",
+      "pet-care",
+      "treatment"
+    ],
+    "businessTypes": [
+      "veterinary-clinics",
+      "pet-care",
+      "animal-hospitals",
+      "pet-insurance"
+    ],
+    "originalName": "ayla-verschueren-nWKMtmbpxQs-unsplash.jpg"
+  },
+  "modern-conference-room-meeting-space.jpg": {
+    "category": "backgrounds",
+    "description": "A sleek modern conference room with floor-to-ceiling windows and executive chairs, ideal for corporate website hero sections.",
+    "tags": [
+      "conference-room",
+      "meeting",
+      "corporate",
+      "office",
+      "modern",
+      "business",
+      "windows",
+      "chairs"
+    ],
+    "businessTypes": [
+      "corporate",
+      "consulting",
+      "law-firms",
+      "financial-services",
+      "business-services"
+    ],
+    "originalName": "benjamin-child-GWe0dlVD9e0-unsplash.jpg"
+  },
+  "person-washing-luxury-car-detailing.jpg": {
+    "category": "placeholders",
+    "description": "A person hand-washing a black sports car with soap and professional equipment, ideal for automotive service websites.",
+    "tags": [
+      "car-wash",
+      "detailing",
+      "automotive",
+      "luxury-car",
+      "cleaning",
+      "service",
+      "professional",
+      "soap"
+    ],
+    "businessTypes": [
+      "car-wash",
+      "auto-detailing",
+      "automotive-services",
+      "luxury-car-care",
+      "mobile-detailing"
+    ],
+    "originalName": "brad-starkey-eP8h7YVhFHk-unsplash.jpg"
+  },
+  "dog-grooming-scissors-poodle.jpg": {
+    "category": "placeholders",
+    "description": "A white poodle being groomed with professional scissors, perfect for pet grooming and salon websites.",
+    "tags": [
+      "dog-grooming",
+      "poodle",
+      "scissors",
+      "pet-salon",
+      "grooming",
+      "professional",
+      "white-dog",
+      "care"
+    ],
+    "businessTypes": [
+      "pet-grooming",
+      "dog-salons",
+      "pet-care",
+      "animal-services",
+      "mobile-grooming"
+    ],
+    "originalName": "buddy-an-LpK2xddrElI-unsplash.jpg"
+  },
+  "padlock-collection-hardware-store.jpg": {
+    "category": "placeholders",
+    "description": "Collection of various padlocks and keys hanging in a hardware store, perfect for security services or locksmith business websites.",
+    "tags": [
+      "padlocks",
+      "keys",
+      "security",
+      "hardware",
+      "locks"
+    ],
+    "businessTypes": [
+      "locksmiths",
+      "security-services",
+      "hardware-stores",
+      "property-management"
+    ],
+    "originalName": "deepavali-gaind-ZUCLyEaOpbQ-unsplash.jpg"
+  },
+  "modern-minimalist-office-interior.jpg": {
+    "category": "backgrounds",
+    "description": "Clean modern office interior with sage green walls, cane chair, and contemporary lighting perfect for professional service websites.",
+    "tags": [
+      "office",
+      "modern",
+      "minimalist",
+      "interior",
+      "professional"
+    ],
+    "businessTypes": [
+      "consulting",
+      "law-firms",
+      "accounting",
+      "architecture",
+      "design-studios"
+    ],
+    "originalName": "denys-striyeshyn-MR4syBfm5_Q-unsplash.jpg"
+  },
+  "neon-tattoo-piercing-shop-signs.jpg": {
+    "category": "backgrounds",
+    "description": "Vibrant neon signs advertising tattoo and piercing services, ideal for body art studios and alternative lifestyle businesses.",
+    "tags": [
+      "neon",
+      "tattoo",
+      "piercing",
+      "signs",
+      "nightlife"
+    ],
+    "businessTypes": [
+      "tattoo-shops",
+      "piercing-studios",
+      "nightlife",
+      "entertainment",
+      "alternative-lifestyle"
+    ],
+    "originalName": "diana-parkhouse-A43N0LyLvmE-unsplash.jpg"
+  },
+  "reading-glasses-book-text-view.jpg": {
+    "category": "placeholders",
+    "description": "Close-up view of reading glasses over book text, perfect for educational, publishing, or vision care websites.",
+    "tags": [
+      "glasses",
+      "reading",
+      "book",
+      "text",
+      "vision"
+    ],
+    "businessTypes": [
+      "optometrists",
+      "bookstores",
+      "education",
+      "publishing",
+      "libraries"
+    ],
+    "originalName": "dmitry-ratushny-wpi3sDUrSEk-unsplash.jpg"
+  },
+  "modern-dining-room-pendant-lighting.jpg": {
+    "category": "backgrounds",
+    "description": "Contemporary dining room with wooden furniture, tiered pendant lighting, and large windows showcasing modern interior design.",
+    "tags": [
+      "dining-room",
+      "modern",
+      "pendant-lights",
+      "interior",
+      "contemporary"
+    ],
+    "businessTypes": [
+      "interior-design",
+      "restaurants",
+      "furniture-stores",
+      "lighting-design",
+      "real-estate"
+    ],
+    "originalName": "don-kaveen-NFbwes_e-jI-unsplash.jpg"
+  },
+  "muscular-man-pull-ups-gym.jpg": {
+    "category": "placeholders",
+    "description": "Black and white photo of a fit man doing pull-ups showing muscular back definition, perfect for fitness and gym websites.",
+    "tags": [
+      "fitness",
+      "gym",
+      "exercise",
+      "muscles",
+      "pull-ups",
+      "workout",
+      "strength"
+    ],
+    "businessTypes": [
+      "gyms",
+      "fitness centers",
+      "personal trainers",
+      "health clubs",
+      "wellness"
+    ],
+    "originalName": "edgar-chaparro-sHfo3WOgGTU-unsplash.jpg"
+  },
+  "small-dog-red-bow-portrait.jpg": {
+    "category": "placeholders",
+    "description": "Cute small dog with brown and white fur wearing red bow and bandana, ideal for pet services and veterinary websites.",
+    "tags": [
+      "dog",
+      "pet",
+      "cute",
+      "bow",
+      "portrait",
+      "small-dog",
+      "grooming"
+    ],
+    "businessTypes": [
+      "pet groomers",
+      "veterinary clinics",
+      "pet stores",
+      "dog training",
+      "animal services"
+    ],
+    "originalName": "edson-torres-hjzs2nA4y-k-unsplash.jpg"
+  },
+  "neon-tattoo-shop-purple-lighting.jpg": {
+    "category": "backgrounds",
+    "description": "Atmospheric tattoo parlor interior with purple neon lighting and skull decoration, perfect for edgy business websites.",
+    "tags": [
+      "neon",
+      "tattoo",
+      "purple",
+      "shop",
+      "interior",
+      "moody",
+      "skull"
+    ],
+    "businessTypes": [
+      "tattoo parlors",
+      "piercing studios",
+      "art studios",
+      "nightlife",
+      "alternative businesses"
+    ],
+    "originalName": "fabio-tura-E87HzEiS3KU-unsplash.jpg"
+  },
+  "tattoo-artist-working-client.jpg": {
+    "category": "placeholders",
+    "description": "Professional tattoo artist wearing gloves working on client's arm tattoo, ideal for tattoo studio and body art websites.",
+    "tags": [
+      "tattoo",
+      "artist",
+      "client",
+      "professional",
+      "gloves",
+      "ink",
+      "body-art"
+    ],
+    "businessTypes": [
+      "tattoo parlors",
+      "body art studios",
+      "piercing shops",
+      "art services"
+    ],
+    "originalName": "farshid-jhm-moghadam-5epn6K3KNRg-unsplash.jpg"
+  },
+  "modern-glass-skyscrapers-upward-view.jpg": {
+    "category": "backgrounds",
+    "description": "Dramatic upward view of modern glass office buildings with blue sky and clouds, perfect for corporate and business websites.",
+    "tags": [
+      "skyscrapers",
+      "corporate",
+      "glass",
+      "modern",
+      "business",
+      "architecture",
+      "blue"
+    ],
+    "businessTypes": [
+      "corporate",
+      "real estate",
+      "finance",
+      "consulting",
+      "law firms",
+      "technology companies"
+    ],
+    "originalName": "floriane-vita-FyD3OWBuXnY-unsplash.jpg"
+  },
+  "classic-library-interior-busts.jpg": {
+    "category": "backgrounds",
+    "description": "Elegant library interior with classical busts and tall bookshelves, perfect for academic, legal, or luxury brand websites.",
+    "tags": [
+      "library",
+      "books",
+      "classical",
+      "academic",
+      "luxury",
+      "intellectual"
+    ],
+    "businessTypes": [
+      "law-firms",
+      "universities",
+      "consulting",
+      "publishing",
+      "luxury-brands"
+    ],
+    "originalName": "giammarco-boscaro-zeH-ljawHtg-unsplash.jpg"
+  },
+  "yoga-pose-black-white.jpg": {
+    "category": "placeholders",
+    "description": "Black and white artistic shot of person in yoga pose on mat, ideal for fitness, wellness, and mindfulness websites.",
+    "tags": [
+      "yoga",
+      "fitness",
+      "wellness",
+      "mindfulness",
+      "exercise",
+      "health"
+    ],
+    "businessTypes": [
+      "yoga-studios",
+      "fitness-centers",
+      "wellness-coaches",
+      "spas",
+      "health-clinics"
+    ],
+    "originalName": "ginny-rose-stewart-UxkcSzRWM2s-unsplash.jpg"
+  },
+  "manicure-nail-treatment-hands.jpg": {
+    "category": "placeholders",
+    "description": "Close-up of professional nail treatment in progress, perfect for beauty salons and nail care service websites.",
+    "tags": [
+      "manicure",
+      "nails",
+      "beauty",
+      "salon",
+      "treatment",
+      "hands"
+    ],
+    "businessTypes": [
+      "nail-salons",
+      "beauty-salons",
+      "spas",
+      "wellness-centers",
+      "cosmetics"
+    ],
+    "originalName": "giorgio-trovato-gb6gtiTZKB8-unsplash.jpg"
+  },
+  "modern-massage-chair-spa.jpg": {
+    "category": "placeholders",
+    "description": "Sleek black massage chair in minimalist spa setting, ideal for wellness centers and luxury spa websites.",
+    "tags": [
+      "spa",
+      "massage",
+      "relaxation",
+      "wellness",
+      "luxury",
+      "treatment"
+    ],
+    "businessTypes": [
+      "spas",
+      "wellness-centers",
+      "massage-therapy",
+      "health-clinics",
+      "luxury-services"
+    ],
+    "originalName": "giorgio-trovato-k5xtu6DApUk-unsplash.jpg"
+  },
+  "salon-wash-chairs-black-white.jpg": {
+    "category": "placeholders",
+    "description": "Professional salon wash stations with ergonomic chairs, perfect for hair salons and beauty service websites.",
+    "tags": [
+      "salon",
+      "hair",
+      "wash-station",
+      "beauty",
+      "professional",
+      "service"
+    ],
+    "businessTypes": [
+      "hair-salons",
+      "beauty-salons",
+      "barbershops",
+      "spas",
+      "wellness-centers"
+    ],
+    "originalName": "giorgio-trovato-ldC8xP2Z9lo-unsplash.jpg"
+  },
+  "minimalist-marble-glass-spheres-background.jpg": {
+    "category": "backgrounds",
+    "description": "Clean minimalist composition with marble block and glass spheres perfect for luxury brand hero sections or product showcase backgrounds.",
+    "tags": [
+      "minimalist",
+      "marble",
+      "glass",
+      "luxury",
+      "neutral",
+      "modern"
+    ],
+    "businessTypes": [
+      "luxury goods",
+      "jewelry",
+      "cosmetics",
+      "interior design",
+      "architecture"
+    ],
+    "originalName": "karolina-grabowska-DVm4PXmeR6Y-unsplash.jpg"
+  },
+  "modern-dental-office-chair-equipment.jpg": {
+    "category": "placeholders",
+    "description": "Professional dental office interior with modern equipment ideal for medical practice websites and healthcare service pages.",
+    "tags": [
+      "dental",
+      "medical",
+      "healthcare",
+      "professional",
+      "clean",
+      "modern"
+    ],
+    "businessTypes": [
+      "dental clinics",
+      "medical practices",
+      "healthcare",
+      "orthodontists",
+      "cosmetic dentistry"
+    ],
+    "originalName": "katarzyna-zygnerska-44jaETSVX2I-unsplash.jpg"
+  },
+  "body-piercing-neon-sign-storefront.jpg": {
+    "category": "placeholders",
+    "description": "Neon body piercing sign in storefront window perfect for tattoo parlors, piercing studios, and alternative lifestyle business websites.",
+    "tags": [
+      "neon",
+      "sign",
+      "body-piercing",
+      "storefront",
+      "alternative",
+      "nighttime"
+    ],
+    "businessTypes": [
+      "tattoo parlors",
+      "piercing studios",
+      "alternative lifestyle",
+      "body art",
+      "nightlife"
+    ],
+    "originalName": "kaylee-eden-TI5y8XocnC8-unsplash.jpg"
+  },
+  "vintage-locksmith-workshop-keys.jpg": {
+    "category": "placeholders",
+    "description": "Traditional locksmith workshop with hundreds of keys and tools showcasing craftsmanship ideal for service industry websites.",
+    "tags": [
+      "locksmith",
+      "vintage",
+      "keys",
+      "workshop",
+      "craftsmanship",
+      "traditional"
+    ],
+    "businessTypes": [
+      "locksmiths",
+      "security services",
+      "hardware stores",
+      "repair services",
+      "artisans"
+    ],
+    "originalName": "kc-shum-motKc68loWM-unsplash.jpg"
+  },
+  "tax-preparation-documents-calculator-workspace.jpg": {
+    "category": "placeholders",
+    "description": "Organized tax preparation workspace with forms, calculator and coffee perfect for accounting firms and financial services websites.",
+    "tags": [
+      "tax",
+      "accounting",
+      "calculator",
+      "documents",
+      "workspace",
+      "professional"
+    ],
+    "businessTypes": [
+      "accounting firms",
+      "tax preparation",
+      "financial services",
+      "bookkeeping",
+      "business consultants"
+    ],
+    "originalName": "kelly-sikkema-M98NRBuzbpc-unsplash.jpg"
+  },
+  "vintage-books-library-placeholder.jpg": {
+    "category": "placeholders",
+    "description": "Row of vintage brown leather-bound books with ornate spines, perfect for educational websites, bookstores, or academic institutions.",
+    "tags": [
+      "books",
+      "vintage",
+      "education",
+      "library",
+      "brown",
+      "leather"
+    ],
+    "businessTypes": [
+      "bookstores",
+      "libraries",
+      "educational institutions",
+      "law firms",
+      "consulting"
+    ],
+    "originalName": "laurenz-heymann-oL6_PWTGbyM-unsplash.jpg"
+  },
+  "modern-building-geometric-pattern.jpg": {
+    "category": "patterns",
+    "description": "Abstract geometric pattern created by modern building facade with repetitive white tiles and strong shadow lines.",
+    "tags": [
+      "geometric",
+      "modern",
+      "architecture",
+      "white",
+      "shadows",
+      "minimal"
+    ],
+    "businessTypes": [
+      "architecture firms",
+      "construction companies",
+      "real estate",
+      "design agencies",
+      "tech companies"
+    ],
+    "originalName": "lidong-pv2RogMDF2I-unsplash.jpg"
+  },
+  "salon-hair-washing-service.jpg": {
+    "category": "placeholders",
+    "description": "Professional hair washing service at salon with stylist caring for client, ideal for beauty and wellness service websites.",
+    "tags": [
+      "salon",
+      "hair care",
+      "beauty",
+      "service",
+      "professional",
+      "wellness"
+    ],
+    "businessTypes": [
+      "hair salons",
+      "beauty salons",
+      "spas",
+      "wellness centers",
+      "barber shops"
+    ],
+    "originalName": "lindsay-cash-Md_DhaFsnCQ-unsplash.jpg"
+  },
+  "modern-white-house-architecture.jpg": {
+    "category": "backgrounds",
+    "description": "Clean modern white house with geometric design and landscaping, perfect as hero background for architecture or real estate sites.",
+    "tags": [
+      "modern",
+      "architecture",
+      "white",
+      "luxury",
+      "geometric",
+      "landscaping"
+    ],
+    "businessTypes": [
+      "real estate",
+      "architecture firms",
+      "luxury hotels",
+      "property developers",
+      "design studios"
+    ],
+    "originalName": "lukas-tennie-d6DtdiBxBVc-unsplash.jpg"
+  },
+  "luxury-spa-mountain-view.jpg": {
+    "category": "backgrounds",
+    "description": "Serene spa lounge chairs overlooking desert mountains at sunset, ideal for luxury resort, spa, or wellness retreat websites.",
+    "tags": [
+      "luxury",
+      "spa",
+      "mountains",
+      "sunset",
+      "relaxation",
+      "desert"
+    ],
+    "businessTypes": [
+      "luxury resorts",
+      "spas",
+      "wellness retreats",
+      "hotels",
+      "travel agencies"
+    ],
+    "originalName": "manuel-moreno-DGa0LQ0yDPc-unsplash.jpg"
+  },
+  "material-samples-design-planning.jpg": {
+    "category": "textures",
+    "description": "Collection of material samples and color swatches arranged on a white surface, perfect for design and architecture websites showcasing planning processes.",
+    "tags": [
+      "materials",
+      "samples",
+      "design",
+      "planning",
+      "architecture",
+      "interior"
+    ],
+    "businessTypes": [
+      "architecture",
+      "interior design",
+      "construction",
+      "design agencies"
+    ],
+    "originalName": "mohammad-lotfian-D6mlvnGbAVg-unsplash.jpg"
+  },
+  "barber-cutting-hair-scissors.jpg": {
+    "category": "placeholders",
+    "description": "Professional barber using scissors and comb to cut a client's hair, ideal for barbershop and salon websites showcasing services.",
+    "tags": [
+      "barber",
+      "haircut",
+      "scissors",
+      "professional",
+      "grooming",
+      "service"
+    ],
+    "businessTypes": [
+      "barbershops",
+      "salons",
+      "grooming services",
+      "men's styling"
+    ],
+    "originalName": "nate-johnston-tgPrIYnW3g4-unsplash.jpg"
+  },
+  "modern-barbershop-interior-chairs.jpg": {
+    "category": "backgrounds",
+    "description": "Stylish barbershop interior with vintage barber chairs, brick walls, and pendant lighting, perfect as a hero image for salon websites.",
+    "tags": [
+      "barbershop",
+      "interior",
+      "vintage",
+      "chairs",
+      "brick",
+      "lighting"
+    ],
+    "businessTypes": [
+      "barbershops",
+      "salons",
+      "men's grooming",
+      "vintage styling"
+    ],
+    "originalName": "nathon-oski-EW_rqoSdDes-unsplash.jpg"
+  },
+  "barber-beard-trim-razor.jpg": {
+    "category": "placeholders",
+    "description": "Black and white image of a tattooed barber trimming a client's beard with professional tools, showcasing craftsmanship and attention to detail.",
+    "tags": [
+      "barber",
+      "beard",
+      "trim",
+      "razor",
+      "tattoo",
+      "professional",
+      "craftsmanship"
+    ],
+    "businessTypes": [
+      "barbershops",
+      "men's grooming",
+      "beard services",
+      "traditional barbers"
+    ],
+    "originalName": "nathon-oski-fE42nRlBcG8-unsplash.jpg"
+  },
+  "medical-treatment-room-clean.jpg": {
+    "category": "backgrounds",
+    "description": "Clean, modern medical treatment room with adjustable table and professional equipment, suitable for healthcare and clinic websites.",
+    "tags": [
+      "medical",
+      "clinic",
+      "treatment",
+      "room",
+      "healthcare",
+      "professional",
+      "clean"
+    ],
+    "businessTypes": [
+      "medical clinics",
+      "healthcare",
+      "physical therapy",
+      "wellness centers",
+      "medical practices"
+    ],
+    "originalName": "nightingale-home-nurse-4e017fuMeXE-unsplash.jpg"
+  },
+  "corporate-skyscrapers-upward-view.jpg": {
+    "category": "backgrounds",
+    "description": "Dramatic upward view of modern glass office buildings creating a corporate canyon effect, perfect for business hero sections.",
+    "tags": [
+      "skyscrapers",
+      "corporate",
+      "business",
+      "glass",
+      "modern",
+      "architecture",
+      "upward"
+    ],
+    "businessTypes": [
+      "corporate",
+      "finance",
+      "consulting",
+      "law-firms",
+      "real-estate",
+      "insurance"
+    ],
+    "originalName": "sean-pollock-PhYq704ffdA-unsplash.jpg"
+  },
+  "neon-piercing-tattoo-shop-sign.jpg": {
+    "category": "backgrounds",
+    "description": "Atmospheric neon sign for a piercing and tattoo shop with moody lighting, ideal for edgy business websites.",
+    "tags": [
+      "neon",
+      "piercing",
+      "tattoo",
+      "sign",
+      "shop",
+      "atmospheric",
+      "pink-blue"
+    ],
+    "businessTypes": [
+      "tattoo-parlors",
+      "piercing-studios",
+      "alternative-lifestyle",
+      "body-art",
+      "nightlife"
+    ],
+    "originalName": "sergej-karpow-JzZNoTPRyr8-unsplash.jpg"
+  },
+  "healthcare-worker-newborn-hospital.jpg": {
+    "category": "placeholders",
+    "description": "Professional healthcare worker gently caring for a newborn in hospital setting, perfect for medical and childcare websites.",
+    "tags": [
+      "healthcare",
+      "newborn",
+      "hospital",
+      "medical",
+      "care",
+      "professional",
+      "gentle"
+    ],
+    "businessTypes": [
+      "hospitals",
+      "pediatric-clinics",
+      "maternity-services",
+      "healthcare",
+      "medical-practices",
+      "childcare"
+    ],
+    "originalName": "solen-feyissa-uVd1Z6Go74M-unsplash.jpg"
+  },
+  "modern-living-room-natural-light.jpg": {
+    "category": "backgrounds",
+    "description": "Clean modern living room with natural lighting and contemporary furniture, ideal for home design and lifestyle websites.",
+    "tags": [
+      "living-room",
+      "modern",
+      "natural-light",
+      "contemporary",
+      "home-design",
+      "clean",
+      "spacious"
+    ],
+    "businessTypes": [
+      "interior-design",
+      "furniture-stores",
+      "real-estate",
+      "home-staging",
+      "lifestyle-brands",
+      "architecture"
+    ],
+    "originalName": "spacejoy-9M66C_w_ToM-unsplash.jpg"
+  },
+  "mid-century-modern-living-room-design.jpg": {
+    "category": "backgrounds",
+    "description": "Stylish mid-century modern living room with warm leather chairs and dark accent wall, perfect for design-focused websites.",
+    "tags": [
+      "mid-century",
+      "modern",
+      "living-room",
+      "leather-chairs",
+      "dark-wall",
+      "stylish",
+      "warm"
+    ],
+    "businessTypes": [
+      "interior-design",
+      "furniture-stores",
+      "home-decor",
+      "design-studios",
+      "real-estate",
+      "lifestyle-brands"
+    ],
+    "originalName": "spacejoy-LhOJl195TWc-unsplash.jpg"
+  }
+}

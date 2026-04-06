@@ -1,0 +1,56 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font:  'DM Sans', system-ui, sans-serif;
+  --mono:  'DM Mono', monospace;
+
+  --bg:       #f6f5f2;
+  --surface:  #ffffff;
+  --surface2: #f0efe9;
+  --border:   rgba(0,0,0,0.07);
+  --border2:  rgba(0,0,0,0.13);
+  --text:     #0f0f0e;
+  --text2:    #6a6966;
+  --text3:    #a09e9a;
+  --accent:   #0f0f0e;
+
+  --green:  #3b6d11; --green-bg:  #eaf3de;
+  --amber:  #854f0b; --amber-bg:  #faeeda;
+  --blue:   #185fa5; --blue-bg:   #e6f1fb;
+  --red:    #a32d2d; --red-bg:    #fcebeb;
+  --gray:   #5f5e5a; --gray-bg:   #f1efe8;
+
+  --r:  8px;
+  --rl: 12px;
+  --sh: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+html, body, #root { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+input, select, textarea, button { font-family: var(--font); }
+
+input, select, textarea {
+  font-size: 13px; color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 7px 10px; outline: none;
+  transition: border-color 0.15s; width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
