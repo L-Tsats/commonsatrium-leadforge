@@ -292,7 +292,7 @@ export default function BriefPage({ toast, onNavigate }) {
                 files.forEach(file => {
                   if (file.size > 5 * 1024 * 1024) { toast(`${file.name} too large (max 5MB)`, 'error'); return }
                   const reader = new FileReader()
-                  reader.onload = ev => {
+                  reader.onload = async (ev) => {
                     existing.push(ev.target.result)
                     loaded++
                     if (loaded === files.length) {
