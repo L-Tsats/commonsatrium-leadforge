@@ -19,6 +19,8 @@ const FIELD_MAP = {
   demoUrl: 'demo_url',
   visionAnalysis: 'vision_analysis',
   customPhotos: 'custom_photos',
+  domainResults: 'domain_results',
+  domainCheckedAt: 'domain_checked_at',
   createdAt: 'created_at'
 };
 
@@ -27,14 +29,15 @@ const REVERSE_FIELD_MAP = Object.fromEntries(
 );
 
 const JSON_COLUMNS = new Set([
-  'top_reviews', 'photo_refs', 'screenshot_files', 'social', 'custom_photos'
+  'top_reviews', 'photo_refs', 'screenshot_files', 'social', 'custom_photos', 'domain_results'
 ]);
 
 const ALL_COLUMNS = [
   'id', 'name', 'category', 'address', 'neighborhood', 'phone', 'website',
   'rating', 'review_count', 'top_reviews', 'review_snippet', 'google_maps_url',
   'photo_refs', 'stage', 'email', 'email_found', 'screenshot_files', 'demo_url',
-  'notes', 'slug', 'social', 'score', 'vision_analysis', 'custom_photos', 'created_at'
+  'notes', 'slug', 'social', 'score', 'vision_analysis', 'custom_photos',
+  'domain_results', 'domain_checked_at', 'created_at'
 ];
 
 /**

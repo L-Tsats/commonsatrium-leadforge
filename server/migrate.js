@@ -185,6 +185,18 @@ async function runMigrations() {
     console.log('Seeded default admin user');
   }
 
+  // Add domain_results and domain_checked_at columns to leads table
+  try {
+    await pool.query(`ALTER TABLE leads ADD COLUMN domain_results JSON DEFAULT NULL`);
+  } catch (err) {
+    if (!err.message.includes('Duplicate column')) throw err;
+  }
+  try {
+    await pool.query(`ALTER TABLE leads ADD COLUMN domain_checked_at TIMESTAMP NULL`);
+  } catch (err) {
+    if (!err.message.includes('Duplicate column')) throw err;
+  }
+
   console.log('Migrations complete');
 }
 

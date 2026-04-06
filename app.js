@@ -44,6 +44,7 @@ app.use('/api/templates', requireAuth, require('./server/routes/templates'));
 app.use('/api/assets', requireAuth, require('./server/routes/assets'));
 app.use('/api/email', requireAuth, require('./server/routes/email'));
 app.use('/api/backup', requireAuth, require('./server/routes/backup'));
+app.use('/api/domains', requireAuth, require('./server/routes/domains'));
 app.use('/api', requireAuth, require('./server/routes/proxy'));
 
 // ─── SPA fallback — serve index.html for client-side routes ──────────────────

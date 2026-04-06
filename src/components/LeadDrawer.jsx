@@ -3,6 +3,7 @@ import { fillTemplate, SOCIAL_META, toSlug } from '../lib/store'
 import { generateBrief } from '../lib/brief'
 import { updateLead, getTemplates, sendEmail, queueEmail, captureScreenshot, enrichSocial, analyzePhotos, refreshLeadPhotos, getLeadImages, getAssetManifest, filterManifestForCategory } from '../lib/api'
 import { Btn, Stars, StageBadge, ContactBadge, Spinner, Badge } from './ui'
+import DomainsTab from './DomainsTab'
 
 const STAGES = ['new','emailed','in_progress','site_built','closed']
 
@@ -175,6 +176,7 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     { key:'brief',    label:'Brief'       },
     { key:'email',    label:'Email'       },
     { key:'shots',    label:'Screenshots' },
+    { key:'domains',  label:'Domains' },
   ]
   const [templates, setTemplatesState] = useState({})
   useEffect(() => {
@@ -228,14 +230,29 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
 
         {/* Tabs */}
         <div style={{ display:'flex', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              flex:1, padding:'8px 4px', fontSize:11.5, background:'none', border:'none',
-              borderBottom: tab===t.key ? '2px solid var(--text)' : '2px solid transparent',
-              color: tab===t.key ? 'var(--text)' : 'var(--text2)',
-              fontWeight: tab===t.key ? 500 : 400, cursor:'pointer', marginBottom:-1
-            }}>{t.label}</button>
-          ))}
+          {tabs.map(t => {
+            // Badge dot for Domains tab
+            let dotColor = null
+            if (t.key === 'domains' && lead.domainResults?.length) {
+              dotColor = lead.domainResults.some(r => r.available === true)
+                ? 'var(--green)'
+                : 'var(--red)'
+            }
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                flex:1, padding:'8px 4px', fontSize:11.5, background:'none', border:'none',
+                borderBottom: tab===t.key ? '2px solid var(--text)' : '2px solid transparent',
+                color: tab===t.key ? 'var(--text)' : 'var(--text2)',
+                fontWeight: tab===t.key ? 500 : 400, cursor:'pointer', marginBottom:-1,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:4
+              }}>
+                {t.label}
+                {dotColor && <span style={{
+                  width:6, height:6, borderRadius:'50%', background:dotColor, display:'inline-block'
+                }} />}
+              </button>
+            )
+          })}
         </div>
 
         {/* Tab body */}
@@ -646,6 +663,11 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                   </div>
               }
             </div>
+          )}
+
+          {/* ── DOMAINS ── */}
+          {tab==='domains' && (
+            <DomainsTab lead={lead} onSave={save} toast={toast} />
           )}
         </div>
       </div>

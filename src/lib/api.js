@@ -365,3 +365,10 @@ export function filterManifestForCategory(manifest, category) {
     })
     .map(([file, info]) => ({ file, category: info.category, description: info.description, tags: info.tags }))
 }
+
+
+// ── Domain Checker ─────────────────────────────────────────────────────────
+
+export async function checkDomains(domains) {
+  return post('/api/domains/check', { domains })
+}

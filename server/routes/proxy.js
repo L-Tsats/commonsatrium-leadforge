@@ -741,37 +741,43 @@ Return ONLY valid JSON array, no markdown.`;
 // ─── Perplexity Contact Enrichment ───────────────────────────────────────────
 
 router.post('/enrich/social', async (req, res) => {
-  const { name, address, neighborhood, city, phone } = req.body;
+  const { name, address, neighborhood, city, phone, category } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required' });
 
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
+  
+  const prompt = `I need you to search for a specific business and find their online presence. Do separate searches for each platform.
 
-  const prompt = `Search the internet for "${name}" in ${location}, Greece. Find their:
-- Instagram page URL (search: "${name}" instagram)
-- Facebook page URL (search: "${name}" facebook)
-- Email address (look on their Instagram bio, Facebook about page, Google Maps listing, or any website)
-- TripAdvisor page URL if it's a restaurant/hotel/cafe
-- e-food.gr listing URL if it's a restaurant/cafe
-- Wolt listing URL if it's a restaurant/cafe
-- Booking.com page URL if it's a hotel
-- TikTok page URL
-- Any website they might have
-- Any second phone number
-${phone ? `Their known phone is: ${phone}` : ''}
+Business: ${name}
+Location: ${location}, Greece
+${phone ? `Known phone: ${phone}` : ''}
+${category ? `Category: ${category}` : ''}
 
-Return a JSON object with these exact fields (null if not found):
-{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"brief summary"}
+Please search for EACH of these separately:
+1. Search: site:instagram.com "${name}" ${(location.split(',')[0] || '').trim()}
+2. Search: site:facebook.com "${name}" ${(location.split(',')[0] || '').trim()}
+3. Search: site:tripadvisor.com "${name}" OR site:tripadvisor.gr "${name}"
+4. Search: site:e-food.gr "${name}"
+5. Search: site:wolt.com "${name}"
+6. Search: site:booking.com "${name}" ${(location.split(',')[0] || '').trim()}
+7. Search: "${name}" ${(location.split(',')[0] || '').trim()} email OR contact OR "@"
+8. Search: site:tiktok.com "${name}"
+9. Search: "${name}" ${(location.split(',')[0] || '').trim()} website
 
-Return ONLY the JSON, no other text.`;
+For each result you find, give me the FULL URL. If a search returns no results, that field is null.
+
+Return ONLY a JSON object:
+{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"what you found"}`;
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
       model: 'sonar',
       messages: [
-        { role: 'system', content: 'You search the web for business information. Return only valid JSON. No markdown, no backticks, no explanation.' },
+        { role: 'system', content: 'You are a web researcher. Search thoroughly for each platform separately. Return only valid JSON with full URLs. No markdown, no backticks.' },
         { role: 'user', content: prompt }
       ],
-      temperature: 0.0
+      temperature: 0.0,
+      search_recency_filter: 'year'
     }, {
       headers: {
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
