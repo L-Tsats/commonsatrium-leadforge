@@ -130,7 +130,6 @@ export default function BriefPage({ toast, onNavigate }) {
                 .filter(l => !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.category?.toLowerCase().includes(leadSearch.toLowerCase()) || l.neighborhood?.toLowerCase().includes(leadSearch.toLowerCase()))
                 .map(l => <option key={l.id} value={l.id}>{l.name} ({l.neighborhood})</option>)}
             </select>
-            </select>
             {lead && (
               <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.7,
                 borderTop:'1px solid var(--border)', paddingTop:'0.75rem' }}>
