@@ -9,6 +9,7 @@
     "screenshot": "node scripts/screenshot.js",
     "setup": "node scripts/setup.js",
     "build": "vite build --outDir public",
+    "migrate-data": "node scripts/migrate-data.js",
     "test": "vitest --run"
   },
   "dependencies": {
