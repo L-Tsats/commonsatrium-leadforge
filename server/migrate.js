@@ -196,6 +196,11 @@ async function runMigrations() {
   } catch (err) {
     if (!err.message.includes('Duplicate column')) throw err;
   }
+  try {
+    await pool.query(`ALTER TABLE leads ADD COLUMN domain_watchlist JSON DEFAULT NULL`);
+  } catch (err) {
+    if (!err.message.includes('Duplicate column')) throw err;
+  }
 
   console.log('Migrations complete');
 }

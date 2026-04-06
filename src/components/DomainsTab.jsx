@@ -4,17 +4,25 @@ import { generateDomainSuggestions, normalizeDomain } from '../lib/domains'
 import { checkDomains, suggestDomains } from '../lib/api'
 
 export default function DomainsTab({ lead, onSave, toast }) {
-  const [domains, setDomains] = useState(() => generateDomainSuggestions(lead.name))
+  const [domains, setDomains] = useState(() => lead.domainWatchlist?.length ? lead.domainWatchlist : generateDomainSuggestions(lead.name))
   const [results, setResults] = useState(lead.domainResults || null)
   const [checking, setChecking] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
   const [error, setError] = useState(null)
 
-  // Re-populate suggestions when lead changes
+  // Re-populate when lead changes
   useEffect(() => {
-    setDomains(generateDomainSuggestions(lead.name))
+    setDomains(lead.domainWatchlist?.length ? lead.domainWatchlist : generateDomainSuggestions(lead.name))
     setResults(lead.domainResults || null)
   }, [lead.id])
+
+  // Auto-save watchlist whenever domains change
+  useEffect(() => {
+    const filtered = domains.filter(d => d.trim())
+    if (filtered.length > 0) {
+      onSave({ domainWatchlist: filtered })
+    }
+  }, [domains])
 
   function updateDomain(i, value) {
     setDomains(d => d.map((v, j) => j === i ? value : v))
