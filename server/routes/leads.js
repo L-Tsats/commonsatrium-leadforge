@@ -22,6 +22,7 @@ const FIELD_MAP = {
   domainResults: 'domain_results',
   domainCheckedAt: 'domain_checked_at',
   domainWatchlist: 'domain_watchlist',
+  selectedDomain: 'selected_domain',
   createdAt: 'created_at'
 };
 
@@ -38,7 +39,7 @@ const ALL_COLUMNS = [
   'rating', 'review_count', 'top_reviews', 'review_snippet', 'google_maps_url',
   'photo_refs', 'stage', 'email', 'email_found', 'screenshot_files', 'demo_url',
   'notes', 'slug', 'social', 'score', 'vision_analysis', 'custom_photos',
-  'domain_results', 'domain_checked_at', 'domain_watchlist', 'created_at'
+  'domain_results', 'domain_checked_at', 'domain_watchlist', 'selected_domain', 'created_at'
 ];
 
 /**

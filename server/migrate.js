@@ -201,6 +201,11 @@ async function runMigrations() {
   } catch (err) {
     if (!err.message.includes('Duplicate column')) throw err;
   }
+  try {
+    await pool.query(`ALTER TABLE leads ADD COLUMN selected_domain VARCHAR(255) DEFAULT NULL`);
+  } catch (err) {
+    if (!err.message.includes('Duplicate column')) throw err;
+  }
 
   console.log('Migrations complete');
 }

@@ -1,27 +1,32 @@
 import { useState, useEffect } from 'react'
 import { Btn, Card, Badge, Spinner } from './ui'
 import { generateDomainSuggestions, normalizeDomain } from '../lib/domains'
-import { checkDomains, suggestDomains } from '../lib/api'
+import { suggestDomains } from '../lib/api'
+
+const REGISTRARS = [
+  { name: 'Papaki', url: (d) => `https://www.papaki.com/en/domain-search.htm?domain=${d}` },
+  { name: 'Tophost', url: (d) => `https://www.tophost.gr/domain-names?search=${d}` },
+  { name: 'Namecheap', url: (d) => `https://www.namecheap.com/domains/registration/results/?domain=${d}` },
+  { name: 'GoDaddy', url: (d) => `https://www.godaddy.com/domainsearch/find?domainToCheck=${d}` },
+  { name: 'Gandi', url: (d) => `https://shop.gandi.net/en/domain/suggest?search=${d.split('.')[0]}` },
+]
 
 export default function DomainsTab({ lead, onSave, toast }) {
-  const [domains, setDomains] = useState(() => lead.domainWatchlist?.length ? lead.domainWatchlist : generateDomainSuggestions(lead.name))
-  const [results, setResults] = useState(lead.domainResults || null)
-  const [checking, setChecking] = useState(false)
+  const [domains, setDomains] = useState(() =>
+    lead.domainWatchlist?.length ? lead.domainWatchlist : generateDomainSuggestions(lead.name)
+  )
+  const [selected, setSelected] = useState(lead.selectedDomain || null)
   const [suggesting, setSuggesting] = useState(false)
-  const [error, setError] = useState(null)
 
-  // Re-populate when lead changes
   useEffect(() => {
     setDomains(lead.domainWatchlist?.length ? lead.domainWatchlist : generateDomainSuggestions(lead.name))
-    setResults(lead.domainResults || null)
+    setSelected(lead.selectedDomain || null)
   }, [lead.id])
 
   // Auto-save watchlist whenever domains change
   useEffect(() => {
     const filtered = domains.filter(d => d.trim())
-    if (filtered.length > 0) {
-      onSave({ domainWatchlist: filtered })
-    }
+    if (filtered.length > 0) onSave({ domainWatchlist: filtered })
   }, [domains])
 
   function updateDomain(i, value) {
@@ -29,11 +34,20 @@ export default function DomainsTab({ lead, onSave, toast }) {
   }
 
   function removeDomain(i) {
+    const removed = domains[i]
     setDomains(d => d.filter((_, j) => j !== i))
+    if (selected === removed) { setSelected(null); onSave({ selectedDomain: null }) }
   }
 
   function addDomain() {
     setDomains(d => [...d, ''])
+  }
+
+  function selectDomain(domain) {
+    const normalized = normalizeDomain(domain)
+    setSelected(normalized)
+    onSave({ selectedDomain: normalized })
+    toast?.(`✓ Selected: ${normalized}`)
   }
 
   async function handleAISuggest() {
@@ -49,144 +63,88 @@ export default function DomainsTab({ lead, onSave, toast }) {
       }
     } catch (e) {
       toast?.('AI suggest failed: ' + (e.message || 'Unknown error'), 'error')
-    } finally {
-      setSuggesting(false)
-    }
+    } finally { setSuggesting(false) }
   }
-
-  async function handleCheck() {
-    const normalized = domains.map(d => normalizeDomain(d)).filter(Boolean)
-    if (!normalized.length) return
-    setChecking(true)
-    setError(null)
-    try {
-      const data = await checkDomains(normalized)
-      const res = data.results || []
-      setResults(res)
-      const ts = new Date().toISOString()
-      onSave({ domainResults: res, domainCheckedAt: ts })
-    } catch (e) {
-      setError(e.message || 'Domain check failed')
-      toast?.('Domain check failed: ' + (e.message || 'Unknown error'), 'error')
-    } finally {
-      setChecking(false)
-    }
-  }
-
-  // Summary computation
-  const available = results ? results.filter(r => r.available === true) : []
-  const cheapestResult = available.length
-    ? available.filter(r => r.bestPrice != null).sort((a, b) => a.bestPrice - b.bestPrice)[0]
-    : null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-      {/* Previous results banner */}
-      {results && lead.domainCheckedAt && !checking && (
-        <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-          Last checked: {new Date(lead.domainCheckedAt).toLocaleString()}
+      {/* Selected domain banner */}
+      {selected && (
+        <div style={{ padding: '8px 12px', background: 'var(--green-bg)', color: 'var(--green)',
+          borderRadius: 'var(--r)', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Selected: <strong>{selected}</strong></span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {REGISTRARS.map(r => (
+              <a key={r.name} href={r.url(selected)} target="_blank" rel="noreferrer"
+                style={{ color: 'var(--green)', fontSize: 11, textDecoration: 'underline' }}>{r.name}</a>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Domain input list */}
+      {/* Domain list */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8, color: 'var(--text2)' }}>
-          Domains to check
+          Domain suggestions
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {domains.map((d, i) => (
-            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                value={d}
-                onChange={e => updateDomain(i, e.target.value)}
-                placeholder="example.gr"
-                style={{
-                  flex: 1, padding: '6px 10px', fontSize: 13,
-                  background: 'var(--surface2)', border: '1px solid var(--border2)',
-                  borderRadius: 'var(--r)', color: 'var(--text)', outline: 'none'
-                }}
-              />
-              <Btn sm variant="ghost" onClick={() => removeDomain(i)} style={{ color: 'var(--red)', padding: '4px 8px' }}>✕</Btn>
-            </div>
-          ))}
+          {domains.map((d, i) => {
+            const normalized = d.trim() ? normalizeDomain(d) : ''
+            const isSelected = normalized && normalized === selected
+            return (
+              <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input value={d} onChange={e => updateDomain(i, e.target.value)}
+                  placeholder="example.gr"
+                  style={{
+                    flex: 1, padding: '6px 10px', fontSize: 13,
+                    background: isSelected ? 'var(--green-bg)' : 'var(--surface2)',
+                    border: isSelected ? '1px solid var(--green)' : '1px solid var(--border2)',
+                    borderRadius: 'var(--r)', color: 'var(--text)', outline: 'none'
+                  }} />
+                <Btn sm onClick={() => d.trim() && selectDomain(d)}
+                  style={{ padding: '4px 8px', background: isSelected ? 'var(--green)' : undefined,
+                    color: isSelected ? '#fff' : undefined }}>
+                  {isSelected ? '✓' : 'Select'}
+                </Btn>
+                <Btn sm variant="ghost" onClick={() => removeDomain(i)}
+                  style={{ color: 'var(--red)', padding: '4px 8px' }}>✕</Btn>
+              </div>
+            )
+          })}
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
           <Btn sm onClick={addDomain}>+ Add domain</Btn>
           <Btn sm onClick={handleAISuggest} disabled={suggesting}>
             {suggesting ? <><Spinner size={12} /> Suggesting…</> : '🤖 AI Suggest'}
           </Btn>
-          <Btn sm variant="primary" onClick={handleCheck} disabled={checking || !domains.filter(d => d.trim()).length}>
-            {checking ? <><Spinner size={12} /> Checking…</> : 'Check Availability'}
-          </Btn>
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div style={{ padding: '8px 12px', background: 'var(--red-bg)', color: 'var(--red)',
-          borderRadius: 'var(--r)', fontSize: 12 }}>
-          {error}
-        </div>
-      )}
-
-      {/* Results */}
-      {results && results.length > 0 && (
+      {/* Check prices section — shows for all domains */}
+      {domains.filter(d => d.trim()).length > 0 && (
         <div>
-          {/* Summary line */}
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10, color: 'var(--text)' }}>
-            {available.length} available
-            {cheapestResult ? ` · best: $${cheapestResult.bestPrice.toFixed(2)} at ${cheapestResult.bestRegistrar}` : ''}
+          <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8, color: 'var(--text2)' }}>
+            Check prices manually
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {results.map((r, i) => {
-              const isAvailable = r.available === true
-              const isError = r.available == null && r.error
-              const borderColor = isAvailable ? 'var(--green)' : isError ? 'var(--red)' : 'var(--border2)'
-              const bgColor = isAvailable ? 'var(--green-bg)' : isError ? 'var(--red-bg)' : 'var(--surface2)'
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {domains.filter(d => d.trim()).map((d, i) => {
+              const normalized = normalizeDomain(d)
+              const isSelected = normalized === selected
               return (
-                <Card key={i} p="0.75rem" style={{ borderLeft: `3px solid ${borderColor}`, background: bgColor }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{r.domain}</span>
-                      {isAvailable && <Badge color="green">Available</Badge>}
-                      {!isAvailable && !isError && <Badge color="gray">Taken</Badge>}
-                      {isError && <Badge color="red">Error</Badge>}
-                    </div>
-                    {isAvailable && r.bestPrice != null && (
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
-                        ${r.bestPrice.toFixed(2)} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)' }}>({r.bestRegistrar})</span>
-                      </div>
-                    )}
+                <Card key={i} p="0.625rem" style={{
+                  borderLeft: isSelected ? '3px solid var(--green)' : '3px solid var(--border2)',
+                  background: isSelected ? 'var(--green-bg)' : 'var(--surface2)'
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{normalized}</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {REGISTRARS.map(r => (
+                      <a key={r.name} href={r.url(normalized)} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 11, color: 'var(--blue)', textDecoration: 'none' }}>
+                        {r.name} →
+                      </a>
+                    ))}
                   </div>
-
-                  {/* Per-registrar prices */}
-                  {isAvailable && r.registrars?.length > 1 && (
-                    <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>
-                      {r.registrars.filter(reg => reg.available && reg.price != null).map((reg, j) => (
-                        <span key={j}>
-                          {reg.registrar}: ${reg.price.toFixed(2)}
-                          {reg.registrar === r.bestRegistrar && <span style={{ color: 'var(--green)', marginLeft: 2 }}>✓</span>}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Manual check links for Greek registrars */}
-                  {r.manualLinks?.length > 0 && (
-                    <div style={{ display: 'flex', gap: 10, fontSize: 11, marginTop: 4 }}>
-                      {r.manualLinks.map((ml, j) => (
-                        <a key={j} href={ml.link} target="_blank" rel="noreferrer"
-                          style={{ color: 'var(--blue)', textDecoration: 'none' }}>
-                          Check on {ml.registrar} →
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {isError && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 2 }}>{r.error}</div>}
                 </Card>
               )
             })}
