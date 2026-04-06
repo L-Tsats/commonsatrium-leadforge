@@ -14,8 +14,8 @@ async function apiFetch(url, options = {}) {
 
   const res = await fetch(url, { ...options, headers })
 
-  if (res.status === 401) {
-    window.location.href = '/login'
+  if (res.status === 401 && !url.includes('/api/auth/')) {
+    window.location.href = '/'
     throw new Error('Authentication required')
   }
 
