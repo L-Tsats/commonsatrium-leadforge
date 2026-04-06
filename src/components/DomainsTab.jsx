@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Btn, Card, Badge, Spinner } from './ui'
 import { generateDomainSuggestions, normalizeDomain } from '../lib/domains'
-import { checkDomains } from '../lib/api'
+import { checkDomains, suggestDomains } from '../lib/api'
 
 export default function DomainsTab({ lead, onSave, toast }) {
   const [domains, setDomains] = useState(() => generateDomainSuggestions(lead.name))
   const [results, setResults] = useState(lead.domainResults || null)
   const [checking, setChecking] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
   const [error, setError] = useState(null)
 
   // Re-populate suggestions when lead changes
@@ -25,6 +26,24 @@ export default function DomainsTab({ lead, onSave, toast }) {
 
   function addDomain() {
     setDomains(d => [...d, ''])
+  }
+
+  async function handleAISuggest() {
+    setSuggesting(true)
+    try {
+      const data = await suggestDomains(lead.name, lead.category, lead.neighborhood)
+      const newSuggestions = (data.suggestions || []).filter(s => !domains.includes(s))
+      if (newSuggestions.length) {
+        setDomains(d => [...d, ...newSuggestions])
+        toast?.(`✓ Added ${newSuggestions.length} AI suggestions`)
+      } else {
+        toast?.('No new suggestions found', 'error')
+      }
+    } catch (e) {
+      toast?.('AI suggest failed: ' + (e.message || 'Unknown error'), 'error')
+    } finally {
+      setSuggesting(false)
+    }
   }
 
   async function handleCheck() {
@@ -86,6 +105,9 @@ export default function DomainsTab({ lead, onSave, toast }) {
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
           <Btn sm onClick={addDomain}>+ Add domain</Btn>
+          <Btn sm onClick={handleAISuggest} disabled={suggesting}>
+            {suggesting ? <><Spinner size={12} /> Suggesting…</> : '🤖 AI Suggest'}
+          </Btn>
           <Btn sm variant="primary" onClick={handleCheck} disabled={checking || !domains.filter(d => d.trim()).length}>
             {checking ? <><Spinner size={12} /> Checking…</> : 'Check Availability'}
           </Btn>

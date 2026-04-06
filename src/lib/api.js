@@ -372,3 +372,7 @@ export function filterManifestForCategory(manifest, category) {
 export async function checkDomains(domains) {
   return post('/api/domains/check', { domains })
 }
+
+export async function suggestDomains(name, category, neighborhood) {
+  return post('/api/domains/suggest', { name, category, neighborhood })
+}
