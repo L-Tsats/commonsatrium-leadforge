@@ -29,6 +29,7 @@ export default function BriefPage({ toast, onNavigate }) {
   const [colorInput, setColorInput] = useState('#000000')
   const [refreshKey, setRefreshKey] = useState(0)
   const [lightbox, setLightbox] = useState(null) // index of photo to show full-size
+  const [leadSearch, setLeadSearch] = useState('')
   const uploadRef = useRef()
   const [leads, setLeads] = useState([])
   const [assets, setAssets] = useState([])
@@ -111,6 +112,8 @@ export default function BriefPage({ toast, onNavigate }) {
         <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
           <Card>
             <div style={{ fontSize:11, color:'var(--text2)', marginBottom:'0.75rem', fontWeight:500 }}>1. Select a lead</div>
+            <input value={leadSearch} onChange={e => setLeadSearch(e.target.value)}
+              placeholder="Search leads..." style={{ marginBottom:6, fontSize:12 }} />
             <select value={sel} onChange={e => {
               const id = e.target.value
               setSel(id); setBrief(''); setSaved(false)
@@ -118,13 +121,15 @@ export default function BriefPage({ toast, onNavigate }) {
               setVisionAnalysis(l?.visionAnalysis || '')
               if (l) loadFolderImages(l.slug || toSlug(l.name))
               else { setFolderPhotos([]); setFolderAssets([]) }
-              // Load matching common assets
               if (l) getAssetManifest().then(m => setCommonAssets(filterManifestForCategory(m, l.category))).catch(() => setCommonAssets([]))
               else setCommonAssets([])
             }}
               style={{ marginBottom: lead ? '1rem' : 0 }}>
               <option value="">— choose —</option>
-              {leads.map(l => <option key={l.id} value={l.id}>{l.name} ({l.neighborhood})</option>)}
+              {leads
+                .filter(l => !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.category?.toLowerCase().includes(leadSearch.toLowerCase()) || l.neighborhood?.toLowerCase().includes(leadSearch.toLowerCase()))
+                .map(l => <option key={l.id} value={l.id}>{l.name} ({l.neighborhood})</option>)}
+            </select>
             </select>
             {lead && (
               <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.7,

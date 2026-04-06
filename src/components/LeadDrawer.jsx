@@ -46,6 +46,11 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     if (tab === 'brief') loadFolderPhotos()
   }, [tab, tplKey, lead, demoLink])
 
+  // Auto-load folder photos when drawer opens
+  useEffect(() => {
+    loadFolderPhotos()
+  }, [lead.id])
+
   function loadFolderPhotos() {
     const slug = lead.slug || toSlug(lead.name)
     if (slug) getLeadImages(slug, 'photos').then(d => setFolderPhotos(d.files || [])).catch(() => setFolderPhotos([]))
