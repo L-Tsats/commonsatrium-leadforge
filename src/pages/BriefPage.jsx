@@ -268,7 +268,7 @@ export default function BriefPage({ toast, onNavigate }) {
                     ? <><Spinner size={12}/> Analyzing {folderPhotos.length} photos...</>
                     : visionAnalysis
                       ? `✓ Re-analyze (${folderPhotos.length} photos)`
-                      : `📸 Analyze ${folderPhotos.length} photos for design direction`}}
+                      : `📸 Analyze ${folderPhotos.length} photos for design direction`}
                 </Btn>
                 {visionAnalysis && (
                   <div style={{ marginTop:'0.75rem', fontSize:11, color:'var(--text2)', lineHeight:1.6,
