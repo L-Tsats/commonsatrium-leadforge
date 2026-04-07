@@ -859,7 +859,8 @@ End your response with a JSON object:
 {"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"sources and what you found"}`;
 
   try {
-    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
+    const response = await axios.post('https://api.perplexity.ai/search', {
+      model: 'sonar',
       messages: [
         { role: 'system', content: 'You are a business contact hunter. Search the web thoroughly for business contact information. Check Facebook, Instagram, Greek directories (vrisko.gr, xo.gr, 11888.gr), and any other relevant sources. Report everything you find. End with a JSON object.' },
         { role: 'user', content: prompt }
