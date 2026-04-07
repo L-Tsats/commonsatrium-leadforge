@@ -224,7 +224,7 @@ export default function SettingsPage({ toast, user }) {
         </Card>
 
         {/* User Management — admin only */}
-        {user?.username === 'admin' && (
+        {user?.username === 'admin' && (<>
           <Card>
             <div style={{ fontWeight:500, marginBottom:'1rem' }}>User Management</div>
 
@@ -336,7 +336,7 @@ export default function SettingsPage({ toast, user }) {
               </div>
             )}
           </Card>
-        )}
+        </>)}
       </div>
     </div>
   )
