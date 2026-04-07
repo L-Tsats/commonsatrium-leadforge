@@ -89,8 +89,8 @@ function blockUser(username, reason) {
   if (!data.blockedUsers.includes(username)) {
     data.blockedUsers.push(username);
   }
-  // Log the block
-  addSearchLog({ action: 'USER_BLOCKED', username, reason, totalAtBlock: data.total });
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || 'unknown';
+  addSearchLog({ action: 'USER_BLOCKED', username, reason, totalAtBlock: data.total, apiKey });
   saveCosts(data);
 }
 

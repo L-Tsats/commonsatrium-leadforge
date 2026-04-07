@@ -87,12 +87,13 @@ router.use('/common-assets-files', express.static(COMMON_DIR));
 // ─── Google Places ───────────────────────────────────────────────────────────
 
 router.post('/places/search', async (req, res) => {
-  const { query, pagetoken, budget } = req.body;
+  const { query, pagetoken } = req.body;
   const username = req.session?.user?.username || 'unknown';
+  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Your search access has been suspended for this month due to budget overuse.', code: 'USER_BLOCKED' });
   }
-  if (budget && !canAfford('textSearch', budget)) {
+  if (!canAfford('textSearch', budget)) {
     blockUser(username, 'Budget exceeded during text search');
     return res.status(402).json({ error: 'Budget limit reached. Your search access has been suspended.', code: 'BUDGET_EXCEEDED' });
   }
@@ -108,12 +109,13 @@ router.post('/places/search', async (req, res) => {
 });
 
 router.post('/places/details', async (req, res) => {
-  const { place_id, budget } = req.body;
+  const { place_id } = req.body;
   const username = req.session?.user?.username || 'unknown';
+  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
   }
-  if (budget && !canAfford('placeDetails', budget)) {
+  if (!canAfford('placeDetails', budget)) {
     blockUser(username, 'Budget exceeded during place details');
     return res.status(402).json({ error: 'Budget limit reached.', code: 'BUDGET_EXCEEDED' });
   }
@@ -130,13 +132,14 @@ router.post('/places/details', async (req, res) => {
 });
 
 router.get('/places/photo', async (req, res) => {
-  const { ref, maxwidth, budget } = req.query;
+  const { ref, maxwidth } = req.query;
   const username = req.session?.user?.username || 'unknown';
+  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
   if (!ref) return res.status(400).json({ error: 'Photo reference required' });
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
   }
-  if (budget && !canAfford('placePhoto', parseFloat(budget))) {
+  if (!canAfford('placePhoto', budget)) {
     blockUser(username, 'Budget exceeded during photo download');
     return res.status(402).json({ error: 'Budget limit reached.', code: 'BUDGET_EXCEEDED' });
   }
@@ -654,14 +657,15 @@ router.get('/lead-folder/images', (req, res) => {
 
 // Download Google Places photos into a lead's photos/ folder
 router.post('/lead-folder/download-photos', async (req, res) => {
-  const { slug, photoRefs, budget } = req.body;
+  const { slug, photoRefs } = req.body;
+  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
   if (!slug || !photoRefs?.length) return res.status(400).json({ error: 'slug and photoRefs required' });
   const dir = path.join(SITES_DIR, slug, 'photos');
   fs.mkdirSync(dir, { recursive: true });
   const downloaded = [];
   for (let i = 0; i < photoRefs.length; i++) {
-    if (budget && !canAfford('placePhoto', budget)) {
-      break; // Stop downloading if budget exceeded
+    if (!canAfford('placePhoto', budget)) {
+      break;
     }
     try {
       const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {

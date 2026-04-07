@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { testSmtp, exportBackup, importBackup, getLeads, getApiCosts, resetApiCosts, migrateLeadFolders } from '../lib/api'
+import { testSmtp, exportBackup, importBackup, getLeads, getApiCosts, resetApiCosts, migrateLeadFolders, getSearchLog } from '../lib/api'
 import { Btn, Card, PageHeader, Spinner } from '../components/ui'
 
 export default function SettingsPage({ toast, user }) {
@@ -10,14 +10,22 @@ export default function SettingsPage({ toast, user }) {
   const [newUser, setNewUser] = useState({ username:'', password:'', displayName:'' })
   const [creatingUser, setCreatingUser] = useState(false)
   const [userList, setUserList] = useState([])
+  const [searchLog, setSearchLog] = useState([])
 
-  useEffect(() => { loadCosts(); if (user?.username === 'admin') loadUsers() }, [])
+  useEffect(() => { loadCosts(); if (user?.username === 'admin') { loadUsers(); loadLog() } }, [])
 
   async function loadUsers() {
     try {
       const r = await fetch('/api/auth/users')
       const data = await r.json()
       setUserList(data.users || [])
+    } catch {}
+  }
+
+  async function loadLog() {
+    try {
+      const data = await getSearchLog()
+      setSearchLog(data.log || [])
     } catch {}
   }
 
@@ -230,8 +238,23 @@ export default function SettingsPage({ toast, user }) {
                     <div>
                       <span style={{ fontWeight:500 }}>{u.display_name || u.username}</span>
                       <span style={{ color:'var(--text3)', marginLeft:6 }}>@{u.username}</span>
+                      {u.plain_password && <span style={{ color:'var(--text3)', marginLeft:6, fontFamily:'var(--mono)', fontSize:11 }}>pw: {u.plain_password}</span>}
                     </div>
-                    <span style={{ fontSize:10, color:'var(--text3)' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}</span>
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      <span style={{ fontSize:10, color:'var(--text3)' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString('el-GR') : ''}</span>
+                      {u.username !== 'admin' && (
+                        <button onClick={async () => {
+                          if (!confirm(`Delete user "${u.username}"?`)) return
+                          try {
+                            const r = await fetch(`/api/auth/users/${u.username}`, { method:'DELETE' })
+                            const data = await r.json()
+                            if (!r.ok) throw new Error(data.error)
+                            toast(`✓ User "${u.username}" deleted`)
+                            loadUsers()
+                          } catch (e) { toast(e.message, 'error') }
+                        }} style={{ fontSize:10, color:'var(--red)', background:'none', border:'none', cursor:'pointer' }}>✕</button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -279,6 +302,39 @@ export default function SettingsPage({ toast, user }) {
                 {creatingUser ? <><Spinner size={12}/> Creating...</> : '+ Create user'}
               </Btn>
             </div>
+          </Card>
+
+          {/* Search & Activity Log */}
+          <Card>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
+              <div style={{ fontWeight:500 }}>Activity Log</div>
+              <Btn sm onClick={loadLog}>↻ Refresh</Btn>
+            </div>
+            {searchLog.length === 0 ? (
+              <div style={{ fontSize:12, color:'var(--text3)', padding:'1rem 0', textAlign:'center' }}>No activity logged yet.</div>
+            ) : (
+              <div style={{ maxHeight:300, overflowY:'auto', display:'flex', flexDirection:'column', gap:3 }}>
+                {[...searchLog].reverse().map((entry, i) => (
+                  <div key={i} style={{ padding:'6px 8px', background:'var(--surface2)', borderRadius:'var(--r)', fontSize:11 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                      <span style={{ fontWeight:500 }}>
+                        {entry.action === 'USER_BLOCKED' ? '🚫 ' : ''}
+                        {entry.action || entry.query || 'search'}
+                      </span>
+                      <span style={{ color:'var(--text3)', flexShrink:0 }}>
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleString('el-GR') : ''}
+                      </span>
+                    </div>
+                    {entry.username && <div style={{ color:'var(--text3)' }}>User: {entry.username}</div>}
+                    {entry.reason && <div style={{ color:'var(--red)' }}>{entry.reason}</div>}
+                    {entry.apiKey && <div style={{ fontSize:10, color:'var(--text3)', fontFamily:'var(--mono)' }}>API key: {entry.apiKey}</div>}
+                    {entry.totalAtBlock != null && <div style={{ fontSize:10, color:'var(--text3)' }}>Total spent at block: ${entry.totalAtBlock?.toFixed(2)}</div>}
+                    {entry.location && <div style={{ color:'var(--text3)' }}>{entry.location} → {entry.category}</div>}
+                    {entry.leadsFound != null && <div style={{ color:'var(--text3)' }}>Found: {entry.leadsFound} leads · Cost: ${entry.cost?.toFixed(3) || '?'}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         )}
       </div>

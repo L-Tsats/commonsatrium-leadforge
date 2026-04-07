@@ -280,7 +280,7 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                   : '—'} />
                 <Row k="Address" v={lead.address} />
                 <Row k="Google Maps" v={<a href={lead.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color:'var(--blue)' }}>Open listing →</a>} />
-                <Row k="Added" v={lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '—'} />
+                <Row k="Added" v={lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('el-GR') : '—'} />
               </Sec>
 
               <Sec title="Top Reviews">

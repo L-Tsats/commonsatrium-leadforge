@@ -59,8 +59,8 @@ router.post('/register', async (req, res) => {
     }
     const hash = await bcrypt.hash(password, 10);
     await pool.execute(
-      'INSERT INTO users (username, password_hash, display_name) VALUES (?, ?, ?)',
-      [username, hash, displayName || username]
+      'INSERT INTO users (username, password_hash, display_name, plain_password) VALUES (?, ?, ?, ?)',
+      [username, hash, displayName || username, password]
     );
     res.json({ ok: true, username });
   } catch (err) {
@@ -71,12 +71,29 @@ router.post('/register', async (req, res) => {
 
 // GET /api/auth/users — list all users (requires auth)
 router.get('/users', async (req, res) => {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Authentication required' });
+  if (!req.session || !req.session.userId || req.session.username !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
   }
   try {
-    const [rows] = await pool.execute('SELECT id, username, display_name, created_at FROM users');
+    const [rows] = await pool.execute('SELECT id, username, display_name, plain_password, created_at FROM users');
     res.json({ users: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/auth/users/:username — delete a user (admin only, can't delete admin)
+router.delete('/users/:username', async (req, res) => {
+  if (!req.session || !req.session.userId || req.session.username !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  const { username } = req.params;
+  if (username === 'admin') {
+    return res.status(400).json({ error: 'Cannot delete admin account' });
+  }
+  try {
+    await pool.execute('DELETE FROM users WHERE username = ?', [username]);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

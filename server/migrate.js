@@ -207,6 +207,13 @@ async function runMigrations() {
     if (!err.message.includes('Duplicate column')) throw err;
   }
 
+  // Add plain_password column to users table (admin reference only)
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN plain_password VARCHAR(255) DEFAULT NULL`);
+  } catch (err) {
+    if (!err.message.includes('Duplicate column')) throw err;
+  }
+
   console.log('Migrations complete');
 }
 

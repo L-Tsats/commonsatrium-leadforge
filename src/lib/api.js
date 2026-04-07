@@ -294,16 +294,14 @@ export async function searchAndEnrich({ location, category, minRating, minReview
     }
     allRaw = allRaw.concat(data.results || [])
     pagetoken = data.next_page_token || null
-    if (pagetoken && allRaw.length < maxResults) await sleep(2100)
-  } while (pagetoken && allRaw.length < maxResults)
+    if (pagetoken && allRaw.length < 40) await sleep(2100)
+  } while (pagetoken && allRaw.length < 40)
 
   const candidates = allRaw
     .filter(p => (p.rating || 0) >= minRating && (p.user_ratings_total || 0) >= minReviews)
-    .slice(0, maxResults * 4)
 
   const leads = []
   for (const place of candidates) {
-    if (leads.length >= maxResults) break
     try {
       const det = await getPlaceDetails(place.place_id)
       const result = det.result || {}
