@@ -836,28 +836,33 @@ router.post('/enrich/social', async (req, res) => {
 
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
 
-  const prompt = `Google search: "${name}" ${location}
+  const prompt = `You are a business contact hunter. Find ALL contact info for this business.
 
-From the search results, find any links to:
-- Their Instagram page (instagram.com URL)
-- Their Facebook page (facebook.com URL)
-- Their TripAdvisor page
-- Their e-food.gr listing
-- Their Wolt listing
-- Their Booking.com page
-- Their website (if any)
-- Their TikTok page
-- Any email address you can see
-- Any phone number different from ${phone || 'unknown'}
+Input: "${name}" ${location ? `in ${location}, Greece` : ''}
+${phone ? `Known phone: ${phone}` : ''}
 
-Just report what you find in the Google search results. Return ONLY a JSON object:
-{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"what you found"}`;
+GOAL: Find ALL contact info by searching the top 10 most relevant links and extracting data from them.
+
+RULES:
+- Search broadly for DIRECTLY relevant results (social media profiles, Greek directories, review sites)
+- Check EVERY promising result for emails, phones, social media links
+- Output ALL finds — even partial
+- Handle Greek characters properly
+- Prioritize: Facebook pages, Instagram profiles, vrisko.gr, xo.gr, 11888.gr, directories
+
+STEPS:
+1. Search for "${name}" and find the top 10 relevant URLs
+2. For each URL, extract: phone numbers (+30...), email addresses (@), social media links, website
+3. Aggregate all unique findings
+
+End your response with a JSON object:
+{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"sources and what you found"}`;
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'sonar-pro',
+      model: 'sonar-large-online',
       messages: [
-        { role: 'system', content: 'You are a web researcher. Search thoroughly and report all findings. End your response with a JSON object containing the results.' },
+        { role: 'system', content: 'You are a business contact hunter. Search the web thoroughly for business contact information. Check Facebook, Instagram, Greek directories (vrisko.gr, xo.gr, 11888.gr), and any other relevant sources. Report everything you find. End with a JSON object.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.0
