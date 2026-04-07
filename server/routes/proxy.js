@@ -9,6 +9,8 @@ const path = require('path');
 
 const router = express.Router();
 
+const { addCost, canAfford, isUserBlocked, blockUser, addSearchLog, saveSearchState, loadSearchState, clearSearchState } = require('../lib/costTracker');
+
 // ─── Directory paths ─────────────────────────────────────────────────────────
 
 const SHOTS_DIR = path.join(__dirname, '..', '..', 'screenshots');
@@ -85,11 +87,20 @@ router.use('/common-assets-files', express.static(COMMON_DIR));
 // ─── Google Places ───────────────────────────────────────────────────────────
 
 router.post('/places/search', async (req, res) => {
-  const { query, pagetoken } = req.body;
+  const { query, pagetoken, budget } = req.body;
+  const username = req.session?.user?.username || 'unknown';
+  if (isUserBlocked(username)) {
+    return res.status(403).json({ error: 'Your search access has been suspended for this month due to budget overuse.', code: 'USER_BLOCKED' });
+  }
+  if (budget && !canAfford('textSearch', budget)) {
+    blockUser(username, 'Budget exceeded during text search');
+    return res.status(402).json({ error: 'Budget limit reached. Your search access has been suspended.', code: 'BUDGET_EXCEEDED' });
+  }
   try {
     const params = { query, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' };
     if (pagetoken) params.pagetoken = pagetoken;
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/textsearch/json', { params });
+    addCost('textSearch', username);
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -97,12 +108,21 @@ router.post('/places/search', async (req, res) => {
 });
 
 router.post('/places/details', async (req, res) => {
-  const { place_id } = req.body;
+  const { place_id, budget } = req.body;
+  const username = req.session?.user?.username || 'unknown';
+  if (isUserBlocked(username)) {
+    return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
+  }
+  if (budget && !canAfford('placeDetails', budget)) {
+    blockUser(username, 'Budget exceeded during place details');
+    return res.status(402).json({ error: 'Budget limit reached.', code: 'BUDGET_EXCEEDED' });
+  }
   const fields = 'name,formatted_address,formatted_phone_number,international_phone_number,website,rating,user_ratings_total,reviews,types,url,opening_hours,business_status,photos';
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
       params: { place_id, fields, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' }
     });
+    addCost('placeDetails', username);
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -110,13 +130,22 @@ router.post('/places/details', async (req, res) => {
 });
 
 router.get('/places/photo', async (req, res) => {
-  const { ref, maxwidth } = req.query;
+  const { ref, maxwidth, budget } = req.query;
+  const username = req.session?.user?.username || 'unknown';
   if (!ref) return res.status(400).json({ error: 'Photo reference required' });
+  if (isUserBlocked(username)) {
+    return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
+  }
+  if (budget && !canAfford('placePhoto', parseFloat(budget))) {
+    blockUser(username, 'Budget exceeded during photo download');
+    return res.status(402).json({ error: 'Budget limit reached.', code: 'BUDGET_EXCEEDED' });
+  }
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
       params: { photoreference: ref, maxwidth: maxwidth || 800, key: process.env.GOOGLE_PLACES_API_KEY },
       responseType: 'arraybuffer'
     });
+    addCost('placePhoto', username);
     res.set('Content-Type', 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=86400');
     res.send(data);
@@ -537,6 +566,85 @@ router.post('/video', async (req, res) => {
 
 // ─── Lead Folders — auto-created per lead in sites/ ─────────────────────────
 
+// Greek transliteration for slugs
+function toSlugServer(name) {
+  const greek = {'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o','ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'};
+  const transliterated = (name || 'site').toLowerCase().split('').map(c => greek[c] || c).join('');
+  const slug = transliterated.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+  return slug || 'unnamed-lead';
+}
+
+// Migrate all lead folders — recompute slugs, create missing folders, move old content
+router.post('/lead-folder/migrate', async (req, res) => {
+  const { leads } = req.body; // array of { name, oldSlug }
+  if (!leads?.length) return res.status(400).json({ error: 'No leads provided' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  const send = (msg) => res.write(`data: ${JSON.stringify(msg)}\n\n`);
+
+  let created = 0, migrated = 0, skipped = 0;
+
+  for (let i = 0; i < leads.length; i++) {
+    const { name, oldSlug } = leads[i];
+    const newSlug = toSlugServer(name);
+
+    if (i % 50 === 0) send({ progress: `Processing ${i+1}/${leads.length}...` });
+
+    const newDir = path.join(SITES_DIR, newSlug);
+    const newPhotos = path.join(newDir, 'photos');
+    const newAssets = path.join(newDir, 'assets');
+
+    // Create new folder if it doesn't exist
+    if (!fs.existsSync(newDir)) {
+      fs.mkdirSync(newPhotos, { recursive: true });
+      fs.mkdirSync(newAssets, { recursive: true });
+      created++;
+    }
+
+    // If old slug is different and old folder exists, move its contents
+    if (oldSlug && oldSlug !== newSlug) {
+      const oldDir = path.join(SITES_DIR, oldSlug);
+      if (fs.existsSync(oldDir)) {
+        // Move photos
+        const oldPhotos = path.join(oldDir, 'photos');
+        if (fs.existsSync(oldPhotos)) {
+          fs.mkdirSync(newPhotos, { recursive: true });
+          for (const file of fs.readdirSync(oldPhotos)) {
+            const src = path.join(oldPhotos, file);
+            const dest = path.join(newPhotos, file);
+            if (!fs.existsSync(dest)) fs.renameSync(src, dest);
+          }
+        }
+        // Move assets
+        const oldAssets = path.join(oldDir, 'assets');
+        if (fs.existsSync(oldAssets)) {
+          fs.mkdirSync(newAssets, { recursive: true });
+          for (const file of fs.readdirSync(oldAssets)) {
+            const src = path.join(oldAssets, file);
+            const dest = path.join(newAssets, file);
+            if (!fs.existsSync(dest)) fs.renameSync(src, dest);
+          }
+        }
+        // Move BRIEF.md if exists
+        const oldBrief = path.join(oldDir, 'BRIEF.md');
+        const newBrief = path.join(newDir, 'BRIEF.md');
+        if (fs.existsSync(oldBrief) && !fs.existsSync(newBrief)) fs.renameSync(oldBrief, newBrief);
+
+        // Remove old empty folder
+        try { fs.rmSync(oldDir, { recursive: true, force: true }); } catch {}
+        migrated++;
+        send({ progress: `Migrated: ${oldSlug} → ${newSlug}` });
+      }
+    } else {
+      skipped++;
+    }
+  }
+
+  send({ done: true, created, migrated, skipped, total: leads.length });
+  res.end();
+});
+
 // Create a lead folder with photos/ and assets/ subdirs
 router.post('/lead-folder/create', (req, res) => {
   const { slug } = req.body;
@@ -572,17 +680,21 @@ router.get('/lead-folder/images', (req, res) => {
 
 // Download Google Places photos into a lead's photos/ folder
 router.post('/lead-folder/download-photos', async (req, res) => {
-  const { slug, photoRefs } = req.body;
+  const { slug, photoRefs, budget } = req.body;
   if (!slug || !photoRefs?.length) return res.status(400).json({ error: 'slug and photoRefs required' });
   const dir = path.join(SITES_DIR, slug, 'photos');
   fs.mkdirSync(dir, { recursive: true });
   const downloaded = [];
   for (let i = 0; i < photoRefs.length; i++) {
+    if (budget && !canAfford('placePhoto', budget)) {
+      break; // Stop downloading if budget exceeded
+    }
     try {
       const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
         params: { photoreference: photoRefs[i], maxwidth: 1200, key: process.env.GOOGLE_PLACES_API_KEY },
         responseType: 'arraybuffer'
       });
+      addCost('placePhoto');
       const filename = `google-${String(i + 1).padStart(2, '0')}.jpg`;
       fs.writeFileSync(path.join(dir, filename), data);
       downloaded.push(filename);

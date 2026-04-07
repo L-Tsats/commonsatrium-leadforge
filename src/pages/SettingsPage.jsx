@@ -1,10 +1,18 @@
-import { useState } from 'react'
-import { testSmtp, exportBackup, importBackup, getLeads } from '../lib/api'
+import { useState, useEffect } from 'react'
+import { testSmtp, exportBackup, importBackup, getLeads, getApiCosts, resetApiCosts, migrateLeadFolders } from '../lib/api'
 import { Btn, Card, PageHeader, Spinner } from '../components/ui'
 
 export default function SettingsPage({ toast }) {
   const [testingSmtp, setTestingSmtp] = useState(false)
   const [restoring, setRestoring] = useState(false)
+  const [costs, setCosts] = useState(null)
+  const [migrating, setMigrating] = useState(false)
+
+  useEffect(() => { loadCosts() }, [])
+
+  async function loadCosts() {
+    try { setCosts(await getApiCosts()) } catch {}
+  }
 
   async function doTestSmtp() {
     setTestingSmtp(true)
@@ -39,6 +47,69 @@ export default function SettingsPage({ toast }) {
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
       <PageHeader title="Settings" />
       <div style={{ flex:1, overflowY:'auto', padding:'1.25rem', display:'flex', flexDirection:'column', gap:'1.25rem', maxWidth:660 }}>
+
+        {/* API Cost Tracker */}
+        <Card>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
+            <div style={{ fontWeight:500 }}>Google Places API Costs (this month)</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <Btn sm onClick={loadCosts}>↻ Refresh</Btn>
+              <Btn sm variant="danger" onClick={async () => {
+                if (!confirm('Reset cost counter? This only resets the tracker, not your actual Google bill.')) return
+                await resetApiCosts(); loadCosts(); toast('Cost counter reset')
+              }}>Reset</Btn>
+            </div>
+          </div>
+          {costs ? (
+            <div>
+              <div style={{ fontSize:28, fontWeight:600, marginBottom:8 }}>${costs.total?.toFixed(2) || '0.00'}</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:'1rem' }}>
+                <div style={{ background:'var(--surface2)', padding:'8px 12px', borderRadius:'var(--r)' }}>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>Text Searches</div>
+                  <div style={{ fontSize:16, fontWeight:600 }}>{costs.calls?.textSearch || 0}</div>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>${costs.breakdown?.textSearch?.toFixed(3) || '0'}</div>
+                </div>
+                <div style={{ background:'var(--surface2)', padding:'8px 12px', borderRadius:'var(--r)' }}>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>Place Details</div>
+                  <div style={{ fontSize:16, fontWeight:600 }}>{costs.calls?.placeDetails || 0}</div>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>${costs.breakdown?.placeDetails?.toFixed(3) || '0'}</div>
+                </div>
+                <div style={{ background:'var(--surface2)', padding:'8px 12px', borderRadius:'var(--r)' }}>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>Photo Downloads</div>
+                  <div style={{ fontSize:16, fontWeight:600 }}>{costs.calls?.placePhoto || 0}</div>
+                  <div style={{ fontSize:11, color:'var(--text3)' }}>${costs.breakdown?.placePhoto?.toFixed(3) || '0'}</div>
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:'var(--text3)' }}>
+                Month: {costs.resetDate || 'N/A'} · Free credit: $200/mo · Set budget in Search page
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize:12, color:'var(--text3)' }}>Loading costs...</div>
+          )}
+        </Card>
+
+        {/* Folder Migration */}
+        <Card>
+          <div style={{ fontWeight:500, marginBottom:'0.75rem' }}>Fix Lead Folders</div>
+          <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.6, marginBottom:'1rem' }}>
+            Recreates all lead folders with proper slugs (fixes Greek names and broken folders). Moves existing photos/assets to the new folders. No API calls — just file management.
+          </div>
+          <Btn onClick={async () => {
+            if (!confirm('This will recreate all lead folders. Existing photos will be moved. Continue?')) return
+            setMigrating(true)
+            try {
+              const leadsData = await getLeads()
+              const leads = (leadsData.leads || leadsData || []).map(l => ({ name: l.name, oldSlug: l.slug }))
+              const result = await migrateLeadFolders(leads)
+              if (result) toast(`✓ Done: ${result.created} created, ${result.migrated} migrated, ${result.skipped} unchanged`)
+              else toast('Migration completed')
+            } catch (e) { toast(e.message, 'error') }
+            finally { setMigrating(false) }
+          }} disabled={migrating}>
+            {migrating ? <><Spinner size={12}/> Migrating folders...</> : '🔧 Fix all lead folders'}
+          </Btn>
+        </Card>
 
         <Card>
           <div style={{ fontWeight:500, marginBottom:'1.25rem' }}>Configuration</div>

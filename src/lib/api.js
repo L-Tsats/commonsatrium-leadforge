@@ -363,6 +363,57 @@ export async function getAssetManifest() {
   return get('/api/common-assets/manifest')
 }
 
+// ── Cost Tracking ─────────────────────────────────────────────────────────
+
+export async function getApiCosts() {
+  return get('/api/costs')
+}
+
+export async function resetApiCosts() {
+  return post('/api/costs/reset')
+}
+
+export async function getSearchState() {
+  return get('/api/search-state')
+}
+
+export async function clearSearchState() {
+  return post('/api/search-state/clear')
+}
+
+export async function getSearchLog() {
+  return get('/api/search-log')
+}
+
+export async function migrateLeadFolders(leads) {
+  const r = await fetch('/api/lead-folder/migrate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ leads })
+  })
+  // SSE response — read it
+  const reader = r.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = '', result = null
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('data: ')) {
+        try {
+          const msg = JSON.parse(trimmed.slice(6))
+          if (msg.done) result = msg
+        } catch {}
+      }
+    }
+  }
+  return result
+}
+
 export function filterManifestForCategory(manifest, category) {
   const cat = (category || '').toLowerCase()
   return Object.entries(manifest)
