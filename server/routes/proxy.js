@@ -855,9 +855,9 @@ Just report what you find in the Google search results. Return ONLY a JSON objec
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'sonar',
+      model: 'sonar-pro',
       messages: [
-        { role: 'system', content: 'Search the web and report what you find. Return only valid JSON. No markdown, no backticks, no explanation.' },
+        { role: 'system', content: 'You are a web researcher. Search thoroughly and report all findings. End your response with a JSON object containing the results.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.0
