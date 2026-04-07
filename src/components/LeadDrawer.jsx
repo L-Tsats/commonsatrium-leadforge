@@ -78,9 +78,9 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     setEnrichingAI(true)
     toast('Searching the web for contacts & social media...')
     try {
-      const { data } = await enrichSocial(lead)
-      if (!data?.found) { toast('Nothing found online for this business', 'error'); return }
-      const fields = data.data || {}
+      const result = await enrichSocial(lead)
+      if (!result?.found) { toast('Nothing found online for this business', 'error'); return }
+      const fields = result.data || {}
       // Merge into lead — don't overwrite existing email if already found
       const updates = {
         instagram:   fields.instagram   || lead.instagram   || null,
