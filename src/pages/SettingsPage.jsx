@@ -109,7 +109,20 @@ export default function SettingsPage({ toast, user }) {
                 </div>
               </div>
               <div style={{ fontSize:11, color:'var(--text3)' }}>
-                Month: {costs.resetDate || 'N/A'} · Free credit: $200/mo · Set budget in Search page
+                Month: {costs.resetDate || 'N/A'} · Free credit: $200/mo
+              </div>
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:8 }}>
+                <label style={{ fontSize:11, color:'var(--text2)' }}>Budget limit: $</label>
+                <input type="number" defaultValue={costs.budget || 280} style={{ width:80, fontSize:12 }}
+                  onBlur={async e => {
+                    const val = parseFloat(e.target.value)
+                    if (isNaN(val) || val < 0) return
+                    try {
+                      await fetch('/api/costs/budget', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ budget:val }) })
+                      toast(`✓ Budget set to $${val}`)
+                    } catch (err) { toast(err.message, 'error') }
+                  }} />
+                <span style={{ fontSize:10, color:'var(--text3)' }}>Search stops when this is reached</span>
               </div>
             </div>
           ) : (

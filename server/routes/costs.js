@@ -6,7 +6,18 @@ const { getCosts, resetCosts, loadSearchState, clearSearchState, loadSearchLog, 
 
 // Get current costs (includes per-user breakdown and blocked list)
 router.get('/costs', (req, res) => {
-  res.json(getCosts());
+  const costs = getCosts();
+  costs.budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  res.json(costs);
+});
+
+// Update budget
+router.post('/costs/budget', (req, res) => {
+  const { budget } = req.body;
+  if (budget == null || budget < 0) return res.status(400).json({ error: 'Invalid budget' });
+  // Update the env var in memory (persists until restart)
+  process.env.GOOGLE_API_BUDGET = String(budget);
+  res.json({ ok: true, budget });
 });
 
 // Reset costs (monthly or manual) — also unblocks everyone

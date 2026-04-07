@@ -188,7 +188,7 @@ export default function SearchPage({ toast }) {
                   placeholder={'Kolonaki, Athens\nGlyfada, Athens\nKifisia, Athens\nThessaloniki\nHeraklion, Crete'}
                   style={{ minHeight:120, resize:'vertical', fontSize:13, lineHeight:1.7 }} />
               </Field>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1rem' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'1rem', marginBottom:'1rem' }}>
                 <Field label="Min Rating">
                   <select value={form.minRating} onChange={e=>set('minRating',parseFloat(e.target.value))}>
                     <option value={3.5}>3.5+ stars</option>
@@ -199,9 +199,6 @@ export default function SearchPage({ toast }) {
                 </Field>
                 <Field label="Min Reviews">
                   <input type="number" value={form.minReviews} onChange={e=>set('minReviews',+e.target.value)} min={0}/>
-                </Field>
-                <Field label="Max Results per category">
-                  <input type="number" value={form.maxResults} onChange={e=>set('maxResults',+e.target.value)} min={1} max={60}/>
                 </Field>
               </div>
               <div style={{ fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
@@ -228,7 +225,7 @@ export default function SearchPage({ toast }) {
                   </select>
                 </Field>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'1rem' }}>
                 <Field label="Min Rating">
                   <select value={form.minRating} onChange={e=>set('minRating',parseFloat(e.target.value))}>
                     <option value={3.5}>3.5+ stars</option>
@@ -239,9 +236,6 @@ export default function SearchPage({ toast }) {
                 </Field>
                 <Field label="Min Reviews">
                   <input type="number" value={form.minReviews} onChange={e=>set('minReviews',+e.target.value)} min={0}/>
-                </Field>
-                <Field label="Max Results">
-                  <input type="number" value={form.maxResults} onChange={e=>set('maxResults',+e.target.value)} min={1} max={60}/>
                 </Field>
               </div>
               <div style={{ marginTop:'0.75rem', fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
