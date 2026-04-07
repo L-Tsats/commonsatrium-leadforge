@@ -81,6 +81,13 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       const result = await enrichSocial(lead)
       if (!result?.found) { toast('Nothing found online for this business', 'error'); return }
       const fields = result.data || {}
+
+      // If debug mode, just show the raw response
+      if (result.debug || (!fields.email && !fields.instagram && !fields.facebook && fields.notes)) {
+        save({ socialNotes: fields.notes || '(no response)' })
+        toast('✓ Raw Perplexity response saved — check notes below')
+        return
+      }
       // Merge into lead — don't overwrite existing email if already found
       const updates = {
         instagram:   fields.instagram   || lead.instagram   || null,

@@ -837,29 +837,25 @@ router.post('/enrich/social', async (req, res) => {
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
   const locationSuffix = location ? ` ${location} Greece` : ' Greece';
 
-  // Simple, direct search query — let Perplexity's web search do the heavy lifting
   const prompt = `"${name}"${locationSuffix}${category ? ` ${category}` : ''}
 
 Find contact information for this business. Search their website, Facebook page, Instagram profile, Google Maps listing, and Greek directories like vrisko.gr, xo.gr, 11888.gr.
 
-I need: email address, Instagram URL, Facebook URL, TikTok URL, TripAdvisor URL, e-food.gr URL, Wolt URL, Booking.com URL, website URL, and any additional phone number besides ${phone || 'unknown'}.
+I need: email address, Instagram URL, Facebook URL, TikTok URL, TripAdvisor URL, e-food.gr URL, Wolt URL, Booking.com URL, website URL, and any additional phone number besides ${phone || 'unknown'}.`;
 
-Return ONLY a JSON object with these exact keys:
-{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"brief summary of sources checked"}`;
+  console.log('=== PERPLEXITY DEBUG: sending request for:', name, locationSuffix, '===');
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
       model: 'sonar',
       messages: [
-        { role: 'system', content: 'Search the web and find business contact information. Return only valid JSON. No markdown, no backticks, no explanation before or after the JSON.' },
+        { role: 'system', content: 'Search the web and find business contact information. Report everything you find.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.0,
       web_search_options: {
         search_context_size: 'high',
-        user_location: {
-          country: 'GR'
-        }
+        user_location: { country: 'GR' }
       }
     }, {
       headers: {
@@ -870,41 +866,25 @@ Return ONLY a JSON object with these exact keys:
 
     const text = response.data.choices?.[0]?.message?.content || '';
     const citations = response.data.citations || [];
-    console.log('Perplexity raw response:', text);
-    if (citations.length) console.log('Perplexity citations:', citations);
 
-    // Strip markdown code fences if present
-    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    console.log('=== PERPLEXITY DEBUG: RESPONSE ===');
+    console.log('Content:', text);
+    console.log('Citations:', JSON.stringify(citations));
+    console.log('=== END DEBUG ===');
 
-    // Try to extract the last JSON object (the one we asked for), not random braces in prose
-    const jsonMatches = [...cleaned.matchAll(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g)];
-    const jsonMatch = jsonMatches.length ? jsonMatches[jsonMatches.length - 1][0] : null;
-
-    if (!jsonMatch) {
-      console.log('Perplexity: no JSON found in response');
-      return res.json({ found: false, raw: text });
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonMatch);
-    } catch (parseErr) {
-      console.error('Perplexity JSON parse error:', parseErr.message, 'Raw match:', jsonMatch);
-      return res.json({ found: false, raw: text });
-    }
-
-    // Append citation sources to notes if available
-    if (citations.length && parsed.notes) {
-      parsed.notes += ' | Sources: ' + citations.slice(0, 5).join(', ');
-    } else if (citations.length) {
-      parsed.notes = 'Sources: ' + citations.slice(0, 5).join(', ');
-    }
-    const result = Object.fromEntries(
-      Object.entries(parsed).filter(([, v]) => v && v !== 'null' && v !== null && v !== 'N/A' && v !== 'n/a')
-    );
-    res.json({ found: Object.keys(result).filter(k => k !== 'notes').length > 0, data: result });
+    // DEBUG: just return raw text — no parsing
+    res.json({
+      found: text.length > 0,
+      data: {
+        notes: text || '(empty response from Perplexity)',
+        _citations: citations.length ? citations.join('\n') : null
+      }
+    });
   } catch (e) {
-    console.error('Perplexity enrichment error:', e.response?.data || e.message);
+    console.error('=== PERPLEXITY ERROR ===');
+    console.error('Status:', e.response?.status);
+    console.error('Data:', JSON.stringify(e.response?.data));
+    console.error('Message:', e.message);
     res.status(500).json({ error: e.response?.data?.error?.message || e.message });
   }
 });
