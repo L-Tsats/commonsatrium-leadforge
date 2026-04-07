@@ -831,41 +831,36 @@ Return ONLY valid JSON array, no markdown.`;
 // ─── Perplexity Contact Enrichment ───────────────────────────────────────────
 
 router.post('/enrich/social', async (req, res) => {
-  const { name, address, neighborhood, city, phone } = req.body;
+  const { name, address, neighborhood, city, phone, category } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required' });
 
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
+  const locationSuffix = location ? ` ${location} Greece` : ' Greece';
 
-  const prompt = `You are a business contact hunter. Find ALL contact info for this business.
+  // Simple, direct search query — let Perplexity's web search do the heavy lifting
+  const prompt = `"${name}"${locationSuffix}${category ? ` ${category}` : ''}
 
-Input: "${name}" ${location ? `in ${location}, Greece` : ''}
-${phone ? `Known phone: ${phone}` : ''}
+Find contact information for this business. Search their website, Facebook page, Instagram profile, Google Maps listing, and Greek directories like vrisko.gr, xo.gr, 11888.gr.
 
-GOAL: Find ALL contact info by searching the top 10 most relevant links and extracting data from them.
+I need: email address, Instagram URL, Facebook URL, TikTok URL, TripAdvisor URL, e-food.gr URL, Wolt URL, Booking.com URL, website URL, and any additional phone number besides ${phone || 'unknown'}.
 
-RULES:
-- Search broadly for DIRECTLY relevant results (social media profiles, Greek directories, review sites)
-- Check EVERY promising result for emails, phones, social media links
-- Output ALL finds — even partial
-- Handle Greek characters properly
-- Prioritize: Facebook pages, Instagram profiles, vrisko.gr, xo.gr, 11888.gr, directories
-
-STEPS:
-1. Search for "${name}" and find the top 10 relevant URLs
-2. For each URL, extract: phone numbers (+30...), email addresses (@), social media links, website
-3. Aggregate all unique findings
-
-End your response with a JSON object:
-{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"sources and what you found"}`;
+Return ONLY a JSON object with these exact keys:
+{"email":null,"instagram":null,"facebook":null,"tiktok":null,"tripadvisor":null,"efood":null,"wolt":null,"booking":null,"website":null,"phone2":null,"notes":"brief summary of sources checked"}`;
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
       model: 'sonar',
       messages: [
-        { role: 'system', content: 'You are a business contact hunter. Search the web thoroughly for business contact information. Check Facebook, Instagram, Greek directories (vrisko.gr, xo.gr, 11888.gr), and any other relevant sources. Report everything you find. End with a JSON object.' },
+        { role: 'system', content: 'Search the web and find business contact information. Return only valid JSON. No markdown, no backticks, no explanation before or after the JSON.' },
         { role: 'user', content: prompt }
       ],
-      temperature: 0.0
+      temperature: 0.0,
+      web_search_options: {
+        search_context_size: 'high',
+        user_location: {
+          country: 'GR'
+        }
+      }
     }, {
       headers: {
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
@@ -874,15 +869,40 @@ End your response with a JSON object:
     });
 
     const text = response.data.choices?.[0]?.message?.content || '';
+    const citations = response.data.citations || [];
     console.log('Perplexity raw response:', text);
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return res.json({ found: false, raw: text });
+    if (citations.length) console.log('Perplexity citations:', citations);
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Strip markdown code fences if present
+    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+
+    // Try to extract the last JSON object (the one we asked for), not random braces in prose
+    const jsonMatches = [...cleaned.matchAll(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g)];
+    const jsonMatch = jsonMatches.length ? jsonMatches[jsonMatches.length - 1][0] : null;
+
+    if (!jsonMatch) {
+      console.log('Perplexity: no JSON found in response');
+      return res.json({ found: false, raw: text });
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch);
+    } catch (parseErr) {
+      console.error('Perplexity JSON parse error:', parseErr.message, 'Raw match:', jsonMatch);
+      return res.json({ found: false, raw: text });
+    }
+
+    // Append citation sources to notes if available
+    if (citations.length && parsed.notes) {
+      parsed.notes += ' | Sources: ' + citations.slice(0, 5).join(', ');
+    } else if (citations.length) {
+      parsed.notes = 'Sources: ' + citations.slice(0, 5).join(', ');
+    }
     const result = Object.fromEntries(
-      Object.entries(parsed).filter(([, v]) => v && v !== 'null' && v !== null)
+      Object.entries(parsed).filter(([, v]) => v && v !== 'null' && v !== null && v !== 'N/A' && v !== 'n/a')
     );
-    res.json({ found: Object.keys(result).length > 0, data: result });
+    res.json({ found: Object.keys(result).filter(k => k !== 'notes').length > 0, data: result });
   } catch (e) {
     console.error('Perplexity enrichment error:', e.response?.data || e.message);
     res.status(500).json({ error: e.response?.data?.error?.message || e.message });
