@@ -82,10 +82,14 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       if (!result?.found) { toast('Nothing found online for this business', 'error'); return }
       const fields = result.data || {}
 
-      // If debug mode, just show the raw response
-      if (result.debug || (!fields.email && !fields.instagram && !fields.facebook && fields.notes)) {
-        save({ socialNotes: fields.notes || '(no response)' })
-        toast('✓ Raw Perplexity response saved — check notes below')
+      // DEBUG: save raw Perplexity response into notes and switch to info tab
+      if (fields.notes && !fields.email && !fields.instagram && !fields.facebook) {
+        const citations = fields._citations || ''
+        const debugText = '[Perplexity Debug]\n' + fields.notes + (citations ? '\n\nSources:\n' + citations : '')
+        save({ notes: debugText })
+        setNotes(debugText)
+        setTab('info')
+        toast('✓ Raw Perplexity response saved to Notes — check Info tab')
         return
       }
       // Merge into lead — don't overwrite existing email if already found
