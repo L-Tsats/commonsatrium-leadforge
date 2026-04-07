@@ -860,7 +860,6 @@ End your response with a JSON object:
 
   try {
     const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'sonar-large-online',
       messages: [
         { role: 'system', content: 'You are a business contact hunter. Search the web thoroughly for business contact information. Check Facebook, Instagram, Greek directories (vrisko.gr, xo.gr, 11888.gr), and any other relevant sources. Report everything you find. End with a JSON object.' },
         { role: 'user', content: prompt }
