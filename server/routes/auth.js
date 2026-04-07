@@ -40,6 +40,48 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/auth/register — create a new user (admin only)
+router.post('/register', async (req, res) => {
+  if (!req.session || !req.session.userId || req.session.username !== 'admin') {
+    return res.status(403).json({ error: 'Only admin can create accounts' });
+  }
+  try {
+    const { username, password, displayName } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    if (password.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+    const [existing] = await pool.execute('SELECT id FROM users WHERE username = ?', [username]);
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await pool.execute(
+      'INSERT INTO users (username, password_hash, display_name) VALUES (?, ?, ?)',
+      [username, hash, displayName || username]
+    );
+    res.json({ ok: true, username });
+  } catch (err) {
+    console.error('Register error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/auth/users — list all users (requires auth)
+router.get('/users', async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const [rows] = await pool.execute('SELECT id, username, display_name, created_at FROM users');
+    res.json({ users: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/auth/logout — destroy session
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {

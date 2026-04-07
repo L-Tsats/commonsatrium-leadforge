@@ -109,7 +109,7 @@ export default function App() {
       <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
         <ConfigBanner />
         <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-          <Page onNavigate={setActive} toast={toast} />
+          <Page onNavigate={setActive} toast={toast} user={user} />
         </div>
       </div>
 

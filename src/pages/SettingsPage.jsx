@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { testSmtp, exportBackup, importBackup, getLeads, getApiCosts, resetApiCosts, migrateLeadFolders } from '../lib/api'
 import { Btn, Card, PageHeader, Spinner } from '../components/ui'
 
-export default function SettingsPage({ toast }) {
+export default function SettingsPage({ toast, user }) {
   const [testingSmtp, setTestingSmtp] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [costs, setCosts] = useState(null)
   const [migrating, setMigrating] = useState(false)
+  const [newUser, setNewUser] = useState({ username:'', password:'', displayName:'' })
+  const [creatingUser, setCreatingUser] = useState(false)
 
   useEffect(() => { loadCosts() }, [])
 
@@ -194,6 +196,42 @@ export default function SettingsPage({ toast }) {
             <p>To back up your leads: use the <b>Export CSV</b> button on the Lead List page.</p>
           </div>
         </Card>
+
+        {/* User Management — admin only */}
+        {user?.username === 'admin' && (
+          <Card>
+            <div style={{ fontWeight:500, marginBottom:'1rem' }}>User Management</div>
+            <div style={{ display:'grid', gap:8, marginBottom:'1rem' }}>
+              <div style={{ display:'flex', gap:8 }}>
+                <input value={newUser.username} onChange={e => setNewUser(u => ({...u, username:e.target.value}))}
+                  placeholder="Username" style={{ flex:1, fontSize:12 }} />
+                <input value={newUser.password} onChange={e => setNewUser(u => ({...u, password:e.target.value}))}
+                  placeholder="Password" type="password" style={{ flex:1, fontSize:12 }} />
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <input value={newUser.displayName} onChange={e => setNewUser(u => ({...u, displayName:e.target.value}))}
+                  placeholder="Display name (optional)" style={{ flex:1, fontSize:12 }} />
+                <Btn onClick={async () => {
+                  if (!newUser.username || !newUser.password) { toast('Username and password required', 'error'); return }
+                  setCreatingUser(true)
+                  try {
+                    const r = await fetch('/api/auth/register', {
+                      method:'POST', headers:{'Content-Type':'application/json'},
+                      body: JSON.stringify(newUser)
+                    })
+                    const data = await r.json()
+                    if (!r.ok) throw new Error(data.error)
+                    toast(`✓ User "${newUser.username}" created`)
+                    setNewUser({ username:'', password:'', displayName:'' })
+                  } catch (e) { toast(e.message, 'error') }
+                  finally { setCreatingUser(false) }
+                }} disabled={creatingUser}>
+                  {creatingUser ? <Spinner size={12}/> : '+ Create user'}
+                </Btn>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   )
