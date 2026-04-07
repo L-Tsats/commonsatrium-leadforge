@@ -104,6 +104,11 @@ function getCosts() {
   return autoReset(loadCosts());
 }
 
+function getBudget() {
+  const data = loadCosts();
+  return data.budget || parseFloat(process.env.GOOGLE_API_BUDGET) || 280;
+}
+
 function resetCosts() {
   const data = getDefaultData();
   saveCosts(data);
@@ -149,6 +154,7 @@ module.exports = {
   blockUser,
   unblockUser,
   getCosts,
+  getBudget,
   resetCosts,
   loadSearchState,
   saveSearchState,

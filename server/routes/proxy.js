@@ -9,7 +9,7 @@ const path = require('path');
 
 const router = express.Router();
 
-const { addCost, canAfford, isUserBlocked, blockUser, addSearchLog, saveSearchState, loadSearchState, clearSearchState } = require('../lib/costTracker');
+const { addCost, canAfford, isUserBlocked, blockUser, getBudget, addSearchLog, saveSearchState, loadSearchState, clearSearchState } = require('../lib/costTracker');
 
 // ─── Directory paths ─────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ router.use('/common-assets-files', express.static(COMMON_DIR));
 router.post('/places/search', async (req, res) => {
   const { query, pagetoken } = req.body;
   const username = req.session?.user?.username || 'unknown';
-  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  const budget = getBudget();
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Your search access has been suspended for this month due to budget overuse.', code: 'USER_BLOCKED' });
   }
@@ -111,7 +111,7 @@ router.post('/places/search', async (req, res) => {
 router.post('/places/details', async (req, res) => {
   const { place_id } = req.body;
   const username = req.session?.user?.username || 'unknown';
-  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  const budget = getBudget();
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
   }
@@ -134,7 +134,7 @@ router.post('/places/details', async (req, res) => {
 router.get('/places/photo', async (req, res) => {
   const { ref, maxwidth } = req.query;
   const username = req.session?.user?.username || 'unknown';
-  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  const budget = getBudget();
   if (!ref) return res.status(400).json({ error: 'Photo reference required' });
   if (isUserBlocked(username)) {
     return res.status(403).json({ error: 'Search access suspended.', code: 'USER_BLOCKED' });
@@ -658,7 +658,7 @@ router.get('/lead-folder/images', (req, res) => {
 // Download Google Places photos into a lead's photos/ folder
 router.post('/lead-folder/download-photos', async (req, res) => {
   const { slug, photoRefs } = req.body;
-  const budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  const budget = getBudget();
   if (!slug || !photoRefs?.length) return res.status(400).json({ error: 'slug and photoRefs required' });
   const dir = path.join(SITES_DIR, slug, 'photos');
   fs.mkdirSync(dir, { recursive: true });

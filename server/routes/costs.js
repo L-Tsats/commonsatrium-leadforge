@@ -7,15 +7,20 @@ const { getCosts, resetCosts, loadSearchState, clearSearchState, loadSearchLog, 
 // Get current costs (includes per-user breakdown and blocked list)
 router.get('/costs', (req, res) => {
   const costs = getCosts();
-  costs.budget = parseFloat(process.env.GOOGLE_API_BUDGET) || 999;
+  costs.budget = costs.budget || parseFloat(process.env.GOOGLE_API_BUDGET) || 280;
   res.json(costs);
 });
 
-// Update budget
+// Update budget — save to cost tracker file
 router.post('/costs/budget', (req, res) => {
   const { budget } = req.body;
   if (budget == null || budget < 0) return res.status(400).json({ error: 'Invalid budget' });
-  // Update the env var in memory (persists until restart)
+  const costs = getCosts();
+  costs.budget = budget;
+  const fs = require('fs');
+  const path = require('path');
+  fs.mkdirSync(path.join(__dirname, '..', '..', 'data'), { recursive: true });
+  fs.writeFileSync(path.join(__dirname, '..', '..', 'data', 'api-costs.json'), JSON.stringify(costs, null, 2));
   process.env.GOOGLE_API_BUDGET = String(budget);
   res.json({ ok: true, budget });
 });

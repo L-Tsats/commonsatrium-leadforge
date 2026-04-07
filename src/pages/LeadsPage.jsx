@@ -23,15 +23,18 @@ export default function LeadsPage({ toast }) {
   const [groupBy, setGroupBy] = useState('category') // 'none' | 'category'
   const [collapsed, setCollapsed] = useState({})
   const [sortBy, setSortBy] = useState('score') // 'score' | 'name' | 'rating' | 'reviews'
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => { reload() }, [])
 
   async function reload() {
+    setLoading(true)
     try {
       const [leadsData, statsData] = await Promise.all([getLeads(), getStats()])
       setLeads(leadsData)
       setStats(statsData)
     } catch {}
+    finally { setLoading(false) }
   }
 
   async function handleDelete(id) {
@@ -149,7 +152,12 @@ export default function LeadsPage({ toast }) {
           </select>
         </div>
 
-        {filtered.length === 0
+        {loading
+          ? <Card style={{ textAlign:'center', padding:'3rem' }}>
+              <Spinner size={28}/>
+              <div style={{ marginTop:'1rem', fontSize:13, color:'var(--text2)' }}>Loading leads...</div>
+            </Card>
+          : filtered.length === 0
           ? <Card style={{ textAlign:'center', padding:'3rem', color:'var(--text2)' }}>
               <div style={{ fontSize:24, marginBottom:8 }}>📋</div>
               <div>{search || stage ? 'No leads match your filters.' : 'No leads yet — run a search to start.'}</div>
