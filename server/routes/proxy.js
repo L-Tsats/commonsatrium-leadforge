@@ -602,39 +602,13 @@ router.post('/lead-folder/migrate', async (req, res) => {
       created++;
     }
 
-    // If old slug is different and old folder exists, move its contents
+    // If old slug is different and old folder exists, just delete it
     if (oldSlug && oldSlug !== newSlug) {
       const oldDir = path.join(SITES_DIR, oldSlug);
       if (fs.existsSync(oldDir)) {
-        // Move photos
-        const oldPhotos = path.join(oldDir, 'photos');
-        if (fs.existsSync(oldPhotos)) {
-          fs.mkdirSync(newPhotos, { recursive: true });
-          for (const file of fs.readdirSync(oldPhotos)) {
-            const src = path.join(oldPhotos, file);
-            const dest = path.join(newPhotos, file);
-            if (!fs.existsSync(dest)) fs.renameSync(src, dest);
-          }
-        }
-        // Move assets
-        const oldAssets = path.join(oldDir, 'assets');
-        if (fs.existsSync(oldAssets)) {
-          fs.mkdirSync(newAssets, { recursive: true });
-          for (const file of fs.readdirSync(oldAssets)) {
-            const src = path.join(oldAssets, file);
-            const dest = path.join(newAssets, file);
-            if (!fs.existsSync(dest)) fs.renameSync(src, dest);
-          }
-        }
-        // Move BRIEF.md if exists
-        const oldBrief = path.join(oldDir, 'BRIEF.md');
-        const newBrief = path.join(newDir, 'BRIEF.md');
-        if (fs.existsSync(oldBrief) && !fs.existsSync(newBrief)) fs.renameSync(oldBrief, newBrief);
-
-        // Remove old empty folder
         try { fs.rmSync(oldDir, { recursive: true, force: true }); } catch {}
         migrated++;
-        send({ progress: `Migrated: ${oldSlug} → ${newSlug}` });
+        send({ progress: `Cleaned up: ${oldSlug} → created fresh ${newSlug}` });
       }
     } else {
       skipped++;
