@@ -109,7 +109,7 @@ export default function SettingsPage({ toast, user }) {
                 </div>
               </div>
               <div style={{ fontSize:11, color:'var(--text3)' }}>
-                Month: {costs.resetDate || 'N/A'} · Free credit: $200/mo
+                Month: {costs.resetDate || 'N/A'}
               </div>
               <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:8 }}>
                 <label style={{ fontSize:11, color:'var(--text2)' }}>Budget limit: $</label>
