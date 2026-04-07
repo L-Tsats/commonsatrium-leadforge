@@ -9,6 +9,24 @@ export default function SettingsPage({ toast, user }) {
   const [migrating, setMigrating] = useState(false)
   const [newUser, setNewUser] = useState({ username:'', password:'', displayName:'' })
   const [creatingUser, setCreatingUser] = useState(false)
+  const [userList, setUserList] = useState([])
+
+  useEffect(() => { loadCosts(); if (user?.username === 'admin') loadUsers() }, [])
+
+  async function loadUsers() {
+    try {
+      const r = await fetch('/api/auth/users')
+      const data = await r.json()
+      setUserList(data.users || [])
+    } catch {}
+  }
+
+  function generatePassword() {
+    const words = ['blue','red','fast','cool','star','moon','sun','fire','wave','rock','gold','mint']
+    const w = words[Math.floor(Math.random()*words.length)]
+    const n = Math.floor(Math.random()*900)+100
+    return w + n
+  }
 
   useEffect(() => { loadCosts() }, [])
 
@@ -191,9 +209,9 @@ export default function SettingsPage({ toast, user }) {
         <Card>
           <div style={{ fontWeight:500, marginBottom:'1rem' }}>Data storage</div>
           <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.7 }}>
-            <p style={{ marginBottom:8 }}>All leads are stored in your browser's <b>localStorage</b> — no database, no server, nothing to back up externally. They persist across restarts automatically.</p>
-            <p style={{ marginBottom:8 }}>Screenshots are saved to the <code style={{ fontFamily:'var(--mono)', fontSize:11 }}>screenshots/</code> folder in your project.</p>
-            <p>To back up your leads: use the <b>Export CSV</b> button on the Lead List page.</p>
+            <p style={{ marginBottom:8 }}>All leads, templates, assets, users, and email queue are stored in the <b>MariaDB database</b> on the server. Data persists across restarts and is shared across all users.</p>
+            <p style={{ marginBottom:8 }}>Photos and site files are stored on the server filesystem in the <code style={{ fontFamily:'var(--mono)', fontSize:11 }}>sites/</code> directory.</p>
+            <p>API cost tracking and search logs are stored in <code style={{ fontFamily:'var(--mono)', fontSize:11 }}>data/</code> as JSON files.</p>
           </div>
         </Card>
 
@@ -201,25 +219,49 @@ export default function SettingsPage({ toast, user }) {
         {user?.username === 'admin' && (
           <Card>
             <div style={{ fontWeight:500, marginBottom:'1rem' }}>User Management</div>
+
+            {/* User list */}
+            {userList.length > 0 && (
+              <div style={{ marginBottom:'1rem' }}>
+                <div style={{ fontSize:11, color:'var(--text3)', marginBottom:6 }}>Existing users ({userList.length})</div>
+                {userList.map(u => (
+                  <div key={u.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'6px 8px', background:'var(--surface2)', borderRadius:'var(--r)', marginBottom:4, fontSize:12 }}>
+                    <div>
+                      <span style={{ fontWeight:500 }}>{u.display_name || u.username}</span>
+                      <span style={{ color:'var(--text3)', marginLeft:6 }}>@{u.username}</span>
+                    </div>
+                    <span style={{ fontSize:10, color:'var(--text3)' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Create new user */}
+            <div style={{ fontSize:11, color:'var(--text3)', marginBottom:6 }}>Create new user</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:'1rem' }}>
               <div>
-                <label style={{ fontSize:11, color:'var(--text2)', display:'block', marginBottom:4 }}>Name (used as username and display name)</label>
-                <input value={newUser.displayName} onChange={e => setNewUser({ username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g,''), password: newUser.password, displayName: e.target.value })}
+                <label style={{ fontSize:11, color:'var(--text2)', display:'block', marginBottom:4 }}>Name</label>
+                <input value={newUser.displayName} onChange={e => {
+                  const name = e.target.value
+                  const pw = newUser.password || generatePassword()
+                  setNewUser({ username: name.toLowerCase().replace(/[^a-z0-9]/g,''), password: pw, displayName: name })
+                }}
                   placeholder="e.g. Maria" style={{ width:'100%', fontSize:13 }} />
               </div>
-              <div>
-                <label style={{ fontSize:11, color:'var(--text2)', display:'block', marginBottom:4 }}>Password</label>
-                <input value={newUser.password} onChange={e => setNewUser(u => ({...u, password:e.target.value}))}
-                  placeholder="Password" style={{ width:'100%', fontSize:13 }} />
-              </div>
               {newUser.displayName && (
-                <div style={{ fontSize:11, color:'var(--text3)' }}>
-                  Username will be: <code style={{ fontFamily:'var(--mono)' }}>{newUser.displayName.toLowerCase().replace(/[^a-z0-9]/g,'')}</code>
+                <div style={{ background:'var(--surface2)', padding:'8px 12px', borderRadius:'var(--r)', fontSize:12 }}>
+                  <div>Username: <code style={{ fontFamily:'var(--mono)' }}>{newUser.displayName.toLowerCase().replace(/[^a-z0-9]/g,'')}</code></div>
+                  <div>Password: <code style={{ fontFamily:'var(--mono)' }}>{newUser.password}</code>
+                    <button onClick={() => setNewUser(u => ({...u, password: generatePassword()}))} style={{
+                      marginLeft:8, fontSize:10, color:'var(--blue)', background:'none', border:'none', cursor:'pointer'
+                    }}>↻ regenerate</button>
+                  </div>
                 </div>
               )}
               <Btn onClick={async () => {
                 const username = newUser.displayName.toLowerCase().replace(/[^a-z0-9]/g,'')
-                if (!username || !newUser.password) { toast('Name and password required', 'error'); return }
+                if (!username || !newUser.password) { toast('Enter a name first', 'error'); return }
                 setCreatingUser(true)
                 try {
                   const r = await fetch('/api/auth/register', {
@@ -228,8 +270,9 @@ export default function SettingsPage({ toast, user }) {
                   })
                   const data = await r.json()
                   if (!r.ok) throw new Error(data.error)
-                  toast(`✓ User "${username}" created`)
+                  toast(`✓ User "${username}" created — password: ${newUser.password}`)
                   setNewUser({ username:'', password:'', displayName:'' })
+                  loadUsers()
                 } catch (e) { toast(e.message, 'error') }
                 finally { setCreatingUser(false) }
               }} disabled={creatingUser} style={{ width:'100%' }}>
