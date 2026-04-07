@@ -201,34 +201,40 @@ export default function SettingsPage({ toast, user }) {
         {user?.username === 'admin' && (
           <Card>
             <div style={{ fontWeight:500, marginBottom:'1rem' }}>User Management</div>
-            <div style={{ display:'grid', gap:8, marginBottom:'1rem' }}>
-              <div style={{ display:'flex', gap:8 }}>
-                <input value={newUser.username} onChange={e => setNewUser(u => ({...u, username:e.target.value}))}
-                  placeholder="Username" style={{ flex:1, fontSize:12 }} />
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:'1rem' }}>
+              <div>
+                <label style={{ fontSize:11, color:'var(--text2)', display:'block', marginBottom:4 }}>Name (used as username and display name)</label>
+                <input value={newUser.displayName} onChange={e => setNewUser({ username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g,''), password: newUser.password, displayName: e.target.value })}
+                  placeholder="e.g. Maria" style={{ width:'100%', fontSize:13 }} />
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:'var(--text2)', display:'block', marginBottom:4 }}>Password</label>
                 <input value={newUser.password} onChange={e => setNewUser(u => ({...u, password:e.target.value}))}
-                  placeholder="Password" type="password" style={{ flex:1, fontSize:12 }} />
+                  placeholder="Password" style={{ width:'100%', fontSize:13 }} />
               </div>
-              <div style={{ display:'flex', gap:8 }}>
-                <input value={newUser.displayName} onChange={e => setNewUser(u => ({...u, displayName:e.target.value}))}
-                  placeholder="Display name (optional)" style={{ flex:1, fontSize:12 }} />
-                <Btn onClick={async () => {
-                  if (!newUser.username || !newUser.password) { toast('Username and password required', 'error'); return }
-                  setCreatingUser(true)
-                  try {
-                    const r = await fetch('/api/auth/register', {
-                      method:'POST', headers:{'Content-Type':'application/json'},
-                      body: JSON.stringify(newUser)
-                    })
-                    const data = await r.json()
-                    if (!r.ok) throw new Error(data.error)
-                    toast(`✓ User "${newUser.username}" created`)
-                    setNewUser({ username:'', password:'', displayName:'' })
-                  } catch (e) { toast(e.message, 'error') }
-                  finally { setCreatingUser(false) }
-                }} disabled={creatingUser}>
-                  {creatingUser ? <Spinner size={12}/> : '+ Create user'}
-                </Btn>
-              </div>
+              {newUser.displayName && (
+                <div style={{ fontSize:11, color:'var(--text3)' }}>
+                  Username will be: <code style={{ fontFamily:'var(--mono)' }}>{newUser.displayName.toLowerCase().replace(/[^a-z0-9]/g,'')}</code>
+                </div>
+              )}
+              <Btn onClick={async () => {
+                const username = newUser.displayName.toLowerCase().replace(/[^a-z0-9]/g,'')
+                if (!username || !newUser.password) { toast('Name and password required', 'error'); return }
+                setCreatingUser(true)
+                try {
+                  const r = await fetch('/api/auth/register', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ username, password: newUser.password, displayName: newUser.displayName })
+                  })
+                  const data = await r.json()
+                  if (!r.ok) throw new Error(data.error)
+                  toast(`✓ User "${username}" created`)
+                  setNewUser({ username:'', password:'', displayName:'' })
+                } catch (e) { toast(e.message, 'error') }
+                finally { setCreatingUser(false) }
+              }} disabled={creatingUser} style={{ width:'100%' }}>
+                {creatingUser ? <><Spinner size={12}/> Creating...</> : '+ Create user'}
+              </Btn>
             </div>
           </Card>
         )}
