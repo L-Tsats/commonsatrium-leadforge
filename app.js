@@ -1,4 +1,4 @@
-// app.js — LeadForge production entry point (Plesk Node.js app)
+// app.js — LeadsForger production entry point (Plesk Node.js app)
 // Serves the React SPA from public/ and all /api/* routes
 
 require('dotenv').config();
@@ -24,7 +24,7 @@ if (!sessionSecret) {
 }
 
 app.use(session({
-  secret: sessionSecret || 'leadforge-dev-fallback-secret',
+  secret: sessionSecret || 'leadsforger-dev-fallback-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -67,7 +67,7 @@ async function start() {
 
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`LeadForge running on port ${PORT} (Node ${process.version})`);
+    console.log(`LeadsForger running on port ${PORT} (Node ${process.version})`);
   });
 }
 

@@ -250,7 +250,7 @@ function LeadRow({ lead, onOpen, onDelete }) {
             style={{ fontSize:11, padding:'4px 8px', borderRadius:'var(--r)', border:'1px solid var(--border2)',
               background:'var(--surface)', color:'var(--text2)', textDecoration:'none', display:'inline-flex', alignItems:'center' }}
             title="Open in Google Maps">🗺️</a>
-          <a href={`https://www.google.com/search?q=${encodeURIComponent(lead.name + ' ' + (lead.neighborhood || ''))}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+          <a href={`https://www.google.com/search?q=${encodeURIComponent(lead.name)}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
             style={{ fontSize:11, padding:'4px 8px', borderRadius:'var(--r)', border:'1px solid var(--border2)',
               background:'var(--surface)', color:'var(--text2)', textDecoration:'none', display:'inline-flex', alignItems:'center' }}
             title="Google search">🔍</a>

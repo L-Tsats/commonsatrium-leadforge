@@ -828,64 +828,205 @@ Return ONLY valid JSON array, no markdown.`;
   res.end();
 });
 
-// ─── Perplexity Contact Enrichment ───────────────────────────────────────────
+// ─── Contact Enrichment (Google CSE → Scrape → Extract) ─────────────────────
+
+// Extract emails, phones, and social links from raw HTML
+function extractContactsFromHtml(html, url) {
+  const contacts = { emails: [], phones: [], socials: {} };
+
+  // Emails — standard format
+  const emailRe = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
+  const emailMatches = html.match(emailRe) || [];
+  for (const e of emailMatches) {
+    const lower = e.toLowerCase();
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.gif') || lower.endsWith('.svg')) continue;
+    if (lower.includes('example.com') || lower.includes('sentry.io') || lower.includes('wixpress')) continue;
+    contacts.emails.push(lower);
+  }
+
+  // Obfuscated emails — [at], (at), {at}, " at ", [dot], (dot) etc.
+  const obfRe = /[\w.+-]+\s*[\[({]\s*at\s*[\])}]\s*[\w.-]+\s*[\[({]\s*dot\s*[\])}]\s*[a-z]{2,}/gi;
+  const obfMatches = html.match(obfRe) || [];
+  for (const raw of obfMatches) {
+    const cleaned = raw.replace(/\s*[\[({]\s*at\s*[\])}]\s*/i, '@').replace(/\s*[\[({]\s*dot\s*[\])}]\s*/gi, '.').trim().toLowerCase();
+    if (cleaned.includes('@')) contacts.emails.push(cleaned);
+  }
+
+  // mailto: links (sometimes hidden in href but not visible as text)
+  const mailtoRe = /mailto:([\w.+-]+@[\w.-]+\.[a-z]{2,})/gi;
+  let mailtoMatch;
+  while ((mailtoMatch = mailtoRe.exec(html)) !== null) {
+    contacts.emails.push(mailtoMatch[1].toLowerCase());
+  }
+
+  // Greek phone numbers — +30, 2xx, 69x patterns
+  const phoneRe = /(?:\+30[\s.-]?)?(?:2[1-9]\d[\s.-]?\d{3}[\s.-]?\d{4}|69\d[\s.-]?\d{3}[\s.-]?\d{4})/g;
+  const phoneMatches = html.match(phoneRe) || [];
+  contacts.phones.push(...phoneMatches.map(p => p.replace(/[\s.-]/g, '')));
+
+  // Social links from href attributes
+  const hrefRe = /href=["']([^"']+)["']/gi;
+  let m;
+  while ((m = hrefRe.exec(html)) !== null) {
+    const href = m[1];
+    if (href.includes('facebook.com/') && !href.includes('facebook.com/sharer'))
+      contacts.socials.facebook = contacts.socials.facebook || href;
+    if (href.includes('instagram.com/') && !href.includes('instagram.com/p/'))
+      contacts.socials.instagram = contacts.socials.instagram || href;
+    if (href.includes('tiktok.com/@'))
+      contacts.socials.tiktok = contacts.socials.tiktok || href;
+    if (href.includes('tripadvisor.'))
+      contacts.socials.tripadvisor = contacts.socials.tripadvisor || href;
+    if (href.includes('booking.com/'))
+      contacts.socials.booking = contacts.socials.booking || href;
+  }
+
+  // Also check for social links in plain text (not just href)
+  const fbMatch = html.match(/https?:\/\/(?:www\.)?facebook\.com\/[a-zA-Z0-9._-]+/i);
+  if (fbMatch && !contacts.socials.facebook) contacts.socials.facebook = fbMatch[0];
+  const igMatch = html.match(/https?:\/\/(?:www\.)?instagram\.com\/[a-zA-Z0-9._]+/i);
+  if (igMatch && !contacts.socials.instagram) contacts.socials.instagram = igMatch[0];
+
+  // Deduplicate emails
+  contacts.emails = [...new Set(contacts.emails)];
+
+  return contacts;
+}
 
 router.post('/enrich/social', async (req, res) => {
   const { name, address, neighborhood, city, phone, category } = req.body;
   if (!name) return res.status(400).json({ error: 'Business name required' });
 
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
-  const locationSuffix = location ? ` ${location} Greece` : ' Greece';
+  const searchName = name.split(' - ')[0].trim();
 
-  const prompt = `"${name}"${locationSuffix}${category ? ` ${category}` : ''}
+  const CSE_KEY = process.env.GOOGLE_PLACES_API_KEY;
+  const CSE_ID = process.env.GOOGLE_CSE_ID;
 
-Find contact information for this business. Search their website, Facebook page, Instagram profile, Google Maps listing, and Greek directories like vrisko.gr, xo.gr, 11888.gr.
+  if (!CSE_ID) {
+    return res.status(400).json({ error: 'GOOGLE_CSE_ID not set in .env' });
+  }
 
-I need: email address, Instagram URL, Facebook URL, TikTok URL, TripAdvisor URL, e-food.gr URL, Wolt URL, Booking.com URL, website URL, and any additional phone number besides ${phone || 'unknown'}.`;
-
-  console.log('=== PERPLEXITY DEBUG: sending request for:', name, locationSuffix, '===');
+  console.log('=== ENRICH: searching for:', searchName, location, '===');
 
   try {
-    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'sonar',
-      messages: [
-        { role: 'system', content: 'Search the web and find business contact information. Report everything you find.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.0,
-      web_search_options: {
-        search_context_size: 'high',
-        user_location: { country: 'GR' }
+    // Step 1: Google Custom Search — find relevant pages
+    const query = `"${searchName}"`;
+    let searchResults = [];
+    try {
+      const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
+        params: { key: CSE_KEY, cx: CSE_ID, q: query, num: 10, gl: 'gr' }
+      });
+      searchResults = (data.items || []).map(item => ({
+        title: item.title,
+        link: item.link,
+        snippet: item.snippet || ''
+      }));
+    } catch (e) {
+      console.error('Google CSE error:', e.response?.data?.error?.message || e.message);
+    }
+
+    console.log(`CSE returned ${searchResults.length} results`);
+
+    if (!searchResults.length) {
+      return res.json({ found: false, data: { notes: 'No search results found' } });
+    }
+
+    // Step 2: Scrape each result page for contact info
+    const allContacts = { emails: new Set(), phones: new Set(), socials: {}, sources: [], failures: [] };
+
+    for (const result of searchResults.slice(0, 7)) {
+      try {
+        const { data: html } = await axios.get(result.link, {
+          timeout: 8000,
+          maxRedirects: 3,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+          responseType: 'text'
+        });
+
+        const contacts = extractContactsFromHtml(html, result.link);
+
+        contacts.emails.forEach(e => allContacts.emails.add(e));
+        contacts.phones.forEach(p => allContacts.phones.add(p));
+        for (const [k, v] of Object.entries(contacts.socials)) {
+          if (!allContacts.socials[k]) allContacts.socials[k] = v;
+        }
+
+        const domain = new URL(result.link).hostname;
+        allContacts.sources.push(`✓ ${domain}: ${contacts.emails.length} emails, ${contacts.phones.length} phones, ${Object.keys(contacts.socials).length} socials`);
+
+        console.log(`  Scraped ${result.link}: ${contacts.emails.length} emails, ${contacts.phones.length} phones`);
+      } catch (e) {
+        const domain = (() => { try { return new URL(result.link).hostname; } catch { return result.link; } })();
+        const reason = e.response ? `${e.response.status} ${e.response.statusText || ''}`.trim() : e.code || e.message;
+        allContacts.failures.push(`✗ ${domain}: ${reason}`);
+        console.log(`  Failed to scrape ${result.link}: ${reason}`);
       }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
+      await sleep(300);
+    }
+
+    // Step 3: Also extract from snippets (sometimes emails are visible there)
+    for (const result of searchResults) {
+      const snippetEmails = (result.snippet.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi) || []);
+      snippetEmails.forEach(e => allContacts.emails.add(e.toLowerCase()));
+    }
+
+    // Step 3b: Check for directory pages that likely have hidden email (e.g. vrisko.gr "send email" button)
+    const emailHintSites = ['vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com'];
+    const emailHintPages = [];
+    for (const result of searchResults) {
+      const hasHint = emailHintSites.some(d => result.link.includes(d));
+      if (hasHint) {
+        emailHintPages.push(result.link);
       }
+    }
+
+    // Step 4: Build result — pick best email, filter out known phone
+    const emails = [...allContacts.emails];
+    const phones = [...allContacts.phones].filter(p => {
+      const clean = p.replace(/\D/g, '');
+      const knownClean = (phone || '').replace(/\D/g, '');
+      return clean !== knownClean && clean.length >= 10;
     });
 
-    const text = response.data.choices?.[0]?.message?.content || '';
-    const citations = response.data.citations || [];
+    const bestEmail = emails.find(e =>
+      ['info@', 'contact@', 'hello@', 'mail@', 'booking@', 'reception@'].some(p => e.startsWith(p))
+    ) || emails[0] || null;
 
-    console.log('=== PERPLEXITY DEBUG: RESPONSE ===');
-    console.log('Content:', text);
-    console.log('Citations:', JSON.stringify(citations));
-    console.log('=== END DEBUG ===');
+    const result = {
+      email: bestEmail,
+      emailHint: !bestEmail && emailHintPages.length ? emailHintPages[0] : null,
+      instagram: allContacts.socials.instagram || null,
+      facebook: allContacts.socials.facebook || null,
+      tiktok: allContacts.socials.tiktok || null,
+      tripadvisor: allContacts.socials.tripadvisor || null,
+      booking: allContacts.socials.booking || null,
+      website: null,
+      phone2: phones[0] || null,
+      notes: `Searched ${searchResults.length} results, scraped ${allContacts.sources.length} pages.\n${allContacts.sources.join('\n')}${allContacts.failures.length ? '\n' + allContacts.failures.join('\n') : ''}${!bestEmail && emailHintPages.length ? '\n📧 Email likely available at: ' + emailHintPages.join(', ') : ''}`
+    };
 
-    // DEBUG: just return raw text — no parsing
-    res.json({
-      found: text.length > 0,
-      data: {
-        notes: text || '(empty response from Perplexity)',
-        _citations: citations.length ? citations.join('\n') : null
+    // Try to identify their own website (not a directory)
+    const dirDomains = ['facebook.com', 'instagram.com', 'tripadvisor.', 'booking.com', 'vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com', 'top100ofgreece.eu', 'aetoitisygeias.eu', 'yellowpages.gr', 'google.com', 'tiktok.com', 'linkedin.com', 'doctoranytime.', 'iatropedia.gr', 'fresha.com', 'booksy.com', 'classpass.com', 'car.gr', 'petfinder.com', 'airbnb.com'];
+    for (const r of searchResults) {
+      const isDirSite = dirDomains.some(d => r.link.includes(d));
+      if (!isDirSite) {
+        result.website = r.link;
+        break;
       }
-    });
+    }
+
+    // Filter nulls
+    const filtered = Object.fromEntries(
+      Object.entries(result).filter(([, v]) => v && v !== null)
+    );
+
+    console.log('=== ENRICH RESULT:', JSON.stringify(filtered, null, 2), '===');
+
+    res.json({ found: Object.keys(filtered).filter(k => k !== 'notes').length > 0, data: filtered });
   } catch (e) {
-    console.error('=== PERPLEXITY ERROR ===');
-    console.error('Status:', e.response?.status);
-    console.error('Data:', JSON.stringify(e.response?.data));
-    console.error('Message:', e.message);
-    res.status(500).json({ error: e.response?.data?.error?.message || e.message });
+    console.error('Enrichment error:', e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -894,6 +1035,7 @@ I need: email address, Instagram URL, Facebook URL, TikTok URL, TripAdvisor URL,
 router.get('/config', (req, res) => {
   res.json({
     hasGoogle:    !!process.env.GOOGLE_PLACES_API_KEY,
+    hasGoogleCSE: !!process.env.GOOGLE_CSE_ID,
     hasPerplexity:!!process.env.PERPLEXITY_API_KEY,
     hasSmtp:      !!process.env.SMTP_HOST && !!process.env.SMTP_USER,
     hasAnthropic: !!process.env.ANTHROPIC_API_KEY,

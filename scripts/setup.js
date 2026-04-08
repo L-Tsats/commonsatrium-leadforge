@@ -11,7 +11,7 @@ const ask = (q, def = '') => new Promise(r =>
 
 async function main() {
   console.log('\n╔══════════════════════════════════════╗')
-  console.log('║     LeadForge — First-time Setup     ║')
+  console.log('║    LeadsForger — First-time Setup    ║')
   console.log('╚══════════════════════════════════════╝\n')
   console.log('This creates a .env file with your API keys.\n')
 

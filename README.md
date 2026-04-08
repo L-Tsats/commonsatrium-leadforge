@@ -1,4 +1,4 @@
-# ⚡ LeadForge v2 — Local Edition
+# ⚡ LeadsForger v2 — Local Edition
 
 No server. No database. No auth. Just `npm start` and go.
 

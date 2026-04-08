@@ -24,7 +24,7 @@ function loadLeaflet() {
 async function reverseGeocode(lat, lng) {
   const r = await fetch(
     `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`,
-    { headers: { 'User-Agent': 'LeadForge/1.0' } }
+    { headers: { 'User-Agent': 'LeadsForger/1.0' } }
   )
   const data = await r.json()
   // Build a clean location string: neighbourhood/suburb, city, country
@@ -111,7 +111,7 @@ export default function MapPicker({ onSelect, onClose }) {
     try {
       const r = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchVal)}&format=json&limit=1&accept-language=en`,
-        { headers: { 'User-Agent': 'LeadForge/1.0' } }
+        { headers: { 'User-Agent': 'LeadsForger/1.0' } }
       )
       const results = await r.json()
       if (results.length && leafletMap.current) {

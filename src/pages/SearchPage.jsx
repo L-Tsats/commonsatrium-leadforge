@@ -321,7 +321,7 @@ export default function SearchPage({ toast }) {
             <div style={{ fontSize:32, marginBottom:'1rem' }}>🗺️</div>
             <div style={{ fontWeight:500, marginBottom:4 }}>Enter a location and category above</div>
             <div style={{ fontSize:12, color:'var(--text3)' }}>
-              LeadForge will find businesses matching your filters that don't have a website
+              LeadsForger will find businesses matching your filters that don't have a website
             </div>
           </Card>
         )}

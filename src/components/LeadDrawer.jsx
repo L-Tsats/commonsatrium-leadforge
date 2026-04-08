@@ -41,6 +41,19 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     setVisionAnalysis(init.visionAnalysis || '')
   }, [init])
 
+  // Auto-save notes when switching tabs or unmounting
+  const notesRef = useRef(notes)
+  const initNotesRef = useRef(init.notes || '')
+  notesRef.current = notes
+  useEffect(() => { initNotesRef.current = init.notes || '' }, [init])
+  useEffect(() => {
+    return () => {
+      if (notesRef.current !== initNotesRef.current) {
+        updateLead(lead.id, { notes: notesRef.current }).catch(() => {})
+      }
+    }
+  }, [tab])
+
   useEffect(() => {
     if (tab === 'email') refreshEmail()
     if (tab === 'brief') loadFolderPhotos()
@@ -81,17 +94,6 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       const result = await enrichSocial(lead)
       if (!result?.found) { toast('Nothing found online for this business', 'error'); return }
       const fields = result.data || {}
-
-      // DEBUG: save raw Perplexity response into notes and switch to info tab
-      if (fields.notes && !fields.email && !fields.instagram && !fields.facebook) {
-        const citations = fields._citations || ''
-        const debugText = '[Perplexity Debug]\n' + fields.notes + (citations ? '\n\nSources:\n' + citations : '')
-        save({ notes: debugText })
-        setNotes(debugText)
-        setTab('info')
-        toast('✓ Raw Perplexity response saved to Notes — check Info tab')
-        return
-      }
       // Merge into lead — don't overwrite existing email if already found
       const updates = {
         instagram:   fields.instagram   || lead.instagram   || null,
@@ -102,15 +104,23 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
         wolt:        fields.wolt        || lead.wolt        || null,
         booking:     fields.booking     || lead.booking     || null,
         phone2:      fields.phone2      || lead.phone2      || null,
-        socialNotes: fields.notes       || lead.socialNotes || null,
+        // Save scrape report to notes
+        notes: fields.notes || lead.notes || null,
         // Only update email if we don't have one yet
-        ...(!lead.email && fields.email ? { email: fields.email, emailFound: true, emailSource: 'ai_search' } : {}),
+        ...(!lead.email && fields.email ? { email: fields.email, emailFound: true, emailSource: 'web_scrape' } : {}),
         // If they have a website after all, flag it
         ...(fields.website ? { websiteFound: fields.website } : {})
       }
       save(updates)
-      const found = Object.entries(updates).filter(([k,v]) => v && !['socialNotes'].includes(k)).length
-      toast(`✓ Found ${found} contact fields`)
+      setNotes(updates.notes || '')
+      const found = Object.entries(updates).filter(([k,v]) => v && !['notes'].includes(k)).length
+
+      // Show email hint if no direct email but directory listing found
+      if (!fields.email && fields.emailHint) {
+        toast(`📧 No direct email found, but check: ${fields.emailHint}`, 'info')
+      } else {
+        toast(`✓ Found ${found} contact fields`)
+      }
     } catch (e) {
       toast(e.message, 'error')
     } finally { setEnrichingAI(false) }

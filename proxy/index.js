@@ -975,4 +975,4 @@ function toHtml(text) {
   </div>`
 }
 
-app.listen(3001, () => console.log('🔌 LeadForge proxy running on http://localhost:3001'))
+app.listen(3001, () => console.log('🔌 LeadsForger proxy running on http://localhost:3001'))

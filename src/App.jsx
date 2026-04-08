@@ -67,7 +67,7 @@ export default function App() {
       <aside style={{ width:208, minWidth:208, background:'var(--surface)',
         borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'1.25rem 0' }}>
         <div style={{ padding:'0 1.25rem 1.25rem', borderBottom:'1px solid var(--border)', marginBottom:'1rem' }}>
-          <div style={{ fontWeight:600, fontSize:15, letterSpacing:'-0.02em' }}>⚡ LeadForge</div>
+          <div style={{ fontWeight:600, fontSize:15, letterSpacing:'-0.02em' }}>⚡ LeadsForger</div>
           <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>Website sales engine</div>
         </div>
 

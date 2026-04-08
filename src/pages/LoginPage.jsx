@@ -32,7 +32,7 @@ export default function LoginPage({ onLogin }) {
         boxShadow: 'var(--sh)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>⚡ LeadForge</div>
+          <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>⚡ LeadsForger</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Sign in to continue</div>
         </div>
 
