@@ -935,7 +935,27 @@ router.post('/enrich/social', async (req, res) => {
     // Step 2: Scrape each result page for contact info
     const allContacts = { emails: new Set(), phones: new Set(), socials: {}, sources: [], failures: [] };
 
+    // Sites to skip scraping (never have extractable emails, waste time)
+    const skipScrapeDomains = ['treatwell.gr', 'fresha.com', 'xrysietairia.eu', 'facebook.com', 'instagram.com', 'tiktok.com', 'google.com'];
+
     for (const result of searchResults.slice(0, 7)) {
+      const domain = (() => { try { return new URL(result.link).hostname; } catch { return ''; } })();
+      const shouldSkip = skipScrapeDomains.some(d => domain.includes(d));
+
+      // Still capture social URLs from the search result link itself
+      if (domain.includes('facebook.com') && !allContacts.socials.facebook) allContacts.socials.facebook = result.link;
+      if (domain.includes('instagram.com') && !allContacts.socials.instagram) allContacts.socials.instagram = result.link;
+      if (domain.includes('linkedin.com') && !allContacts.socials.linkedin) allContacts.socials.linkedin = result.link;
+      if (domain.includes('tiktok.com') && !allContacts.socials.tiktok) allContacts.socials.tiktok = result.link;
+      if (domain.includes('tripadvisor.') && !allContacts.socials.tripadvisor) allContacts.socials.tripadvisor = result.link;
+      if (domain.includes('booking.com') && !allContacts.socials.booking) allContacts.socials.booking = result.link;
+      if (domain.includes('fresha.com') && !allContacts.socials.fresha) allContacts.socials.fresha = result.link;
+
+      if (shouldSkip) {
+        allContacts.sources.push(`⏭ ${domain}: skipped (no email expected)`);
+        continue;
+      }
+
       try {
         const { data: html } = await axios.get(result.link, {
           timeout: 8000,
@@ -957,7 +977,6 @@ router.post('/enrich/social', async (req, res) => {
 
         console.log(`  Scraped ${result.link}: ${contacts.emails.length} emails, ${contacts.phones.length} phones`);
       } catch (e) {
-        const domain = (() => { try { return new URL(result.link).hostname; } catch { return result.link; } })();
         const reason = e.response ? `${e.response.status} ${e.response.statusText || ''}`.trim() : e.code || e.message;
         allContacts.failures.push(`✗ ${domain}: ${reason}`);
         console.log(`  Failed to scrape ${result.link}: ${reason}`);
