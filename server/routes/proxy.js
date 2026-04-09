@@ -903,34 +903,32 @@ router.post('/enrich/social', async (req, res) => {
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
   const searchName = name.split(' - ')[0].trim();
 
-  const CSE_KEY = process.env.GOOGLE_SERVICES_API_KEY;
-  const CSE_ID = process.env.GOOGLE_CSE_ID;
+  const SERP_KEY = process.env.SERPAPI_KEY;
 
-  if (!CSE_ID) {
-    return res.status(400).json({ error: 'GOOGLE_CSE_ID not set in .env' });
+  if (!SERP_KEY) {
+    return res.status(400).json({ error: 'SERPAPI_KEY not set in .env' });
   }
 
   console.log('=== ENRICH: searching for:', searchName, location, '===');
 
   try {
-    // Step 1: Google Custom Search — find relevant pages
+    // Step 1: SerpAPI Google Search — find relevant pages
     const query = `"${searchName}"`;
     let searchResults = [];
     try {
-      const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
-        params: { key: CSE_KEY, cx: CSE_ID, q: query, num: 10, gl: 'gr' }
+      const { data } = await axios.get('https://serpapi.com/search.json', {
+        params: { q: query, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 10 }
       });
-      searchResults = (data.items || []).map(item => ({
+      searchResults = (data.organic_results || []).map(item => ({
         title: item.title,
         link: item.link,
         snippet: item.snippet || ''
       }));
       addCost('cseSearch', req.session?.user?.username);
     } catch (e) {
-      const errMsg = e.response?.data?.error?.message || e.message;
-      console.error('Google CSE error:', errMsg);
-      console.error('Google CSE full error:', JSON.stringify(e.response?.data || {}));
-      return res.json({ found: false, data: { notes: `CSE API error: ${errMsg}` } });
+      const errMsg = e.response?.data?.error || e.message;
+      console.error('SerpAPI error:', errMsg);
+      return res.json({ found: false, data: { notes: `Search API error: ${errMsg}` } });
     }
 
     console.log(`CSE returned ${searchResults.length} results`);
@@ -1097,7 +1095,7 @@ router.post('/enrich/social', async (req, res) => {
 router.get('/config', (req, res) => {
   res.json({
     hasGoogle:    !!process.env.GOOGLE_SERVICES_API_KEY,
-    hasGoogleCSE: !!process.env.GOOGLE_CSE_ID,
+    hasBraveSearch: !!process.env.SERPAPI_KEY,
     hasPerplexity:!!process.env.PERPLEXITY_API_KEY,
     hasSmtp:      !!process.env.SMTP_HOST && !!process.env.SMTP_USER,
     hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
