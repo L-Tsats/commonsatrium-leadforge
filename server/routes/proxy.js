@@ -172,8 +172,11 @@ router.post('/analyze/photos', async (req, res) => {
       for (const file of files) {
         try {
           const imgData = fs.readFileSync(path.join(photosDir, file));
-          const ext = path.extname(file).toLowerCase();
-          const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+          // Detect actual MIME from magic bytes, not file extension
+          let mime = 'image/jpeg';
+          if (imgData[0] === 0x89 && imgData[1] === 0x50) mime = 'image/png';
+          else if (imgData[0] === 0x52 && imgData[1] === 0x49) mime = 'image/webp';
+          else if (imgData[0] === 0x47 && imgData[1] === 0x49) mime = 'image/gif';
           images.push({ type: 'image', source: { type: 'base64', media_type: mime, data: imgData.toString('base64') } });
         } catch {}
       }
@@ -186,7 +189,7 @@ router.post('/analyze/photos', async (req, res) => {
           params: { photoreference: ref, maxwidth: 800, key: process.env.GOOGLE_SERVICES_API_KEY },
           responseType: 'arraybuffer'
         });
-        images.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: Buffer.from(data).toString('base64') } });
+        images.push({ type: 'image', source: { type: 'base64', media_type: (data[0] === 0x89 && data[1] === 0x50) ? 'image/png' : 'image/jpeg', data: Buffer.from(data).toString('base64') } });
       } catch {}
     }
     for (const dataUri of (customPhotos || [])) {
