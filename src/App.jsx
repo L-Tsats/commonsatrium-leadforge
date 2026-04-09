@@ -25,6 +25,7 @@ export default function App() {
   const { toasts, toast } = useToast()
   // null = still checking, false = unauthenticated, object = authenticated user
   const [user, setUser] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     getMe()
@@ -60,7 +61,6 @@ export default function App() {
   // Authenticated → show app
   const groups = [...new Set(NAV.map(n => n.group))]
   const Page = PAGES[active]
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
