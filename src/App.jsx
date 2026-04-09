@@ -79,7 +79,7 @@ export default function App() {
       }} className="sidebar-overlay" />}
 
       {/* Sidebar */}
-      <aside className="sidebar" style={{ width:208, minWidth:208, background:'var(--surface)',
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`} style={{ width:208, minWidth:208, background:'var(--surface)',
         borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'1.25rem 0',
         zIndex:1000, transition:'transform 0.2s ease',
       }}>
@@ -139,7 +139,12 @@ export default function App() {
           .sidebar {
             position: fixed !important;
             top: 0; left: 0; bottom: 0;
-            transform: ${sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'};
+          }
+          .sidebar-closed {
+            transform: translateX(-100%);
+          }
+          .sidebar-open {
+            transform: translateX(0);
           }
         }
       `}</style>
