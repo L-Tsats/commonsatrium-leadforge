@@ -909,11 +909,144 @@ router.post('/enrich/social', async (req, res) => {
     return res.status(400).json({ error: 'SERPAPI_KEY not set in .env' });
   }
 
-  console.log('=== ENRICH: searching for:', searchName, location, '===');
+  console.log('=== ENRICH: searching for:', searchName, '===');
+
+  // Parked/placeholder page detection keywords
+  const parkedKeywords = ['parked', 'for sale', 'this domain', 'coming soon', 'under construction',
+    'buy this domain', 'domain is for sale', 'godaddy', 'namecheap', 'sedoparking',
+    'hugedomains', 'dan.com', 'afternic', 'domain parking', 'κατασκευή', 'υπό κατασκευή'];
 
   try {
-    // Step 1: SerpAPI Google Search — find relevant pages
-    const query = `"${searchName}"`;
+    // Step 0: Check if business has a website via domain guessing
+    let websiteStatus = null; // null = no website, 'working' = false alarm, 'broken' = has domain but down, 'parked' = placeholder
+    let websiteUrl = null;
+
+    // Guess likely domain names from business name (with Greek transliteration)
+    const greek = {'α':'a','β':'b','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th','ι':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p','ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o','ά':'a','έ':'e','ή':'i','ί':'i','ό':'o','ύ':'y','ώ':'o','ϊ':'i','ϋ':'y','ΐ':'i','ΰ':'y'};
+    const transliterated = searchName.toLowerCase().split('').map(c => greek[c] || c).join('');
+    const clean = transliterated.replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '');
+    const words = transliterated.replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
+    const guesses = [...new Set([
+      `${clean}.gr`, `${clean}.com`,
+      `${words.slice(0, 2).join('')}.gr`, `${words.slice(0, 2).join('')}.com`,
+      `${words[0]}.gr`, `${words[0]}.com`
+    ])];
+
+    console.log('  Domain guesses:', guesses.join(', '));
+
+    for (const domain of guesses) {
+      try {
+        const resp = await axios.get(`https://${domain}`, {
+          timeout: 5000, maxRedirects: 3,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          validateStatus: () => true
+        });
+        if (resp.status >= 200 && resp.status < 400) {
+          websiteUrl = `https://${domain}`;
+          const html = (typeof resp.data === 'string' ? resp.data : '').toLowerCase();
+          const isParked = parkedKeywords.some(kw => html.includes(kw)) && html.length < 50000;
+
+          if (isParked) {
+            websiteStatus = 'parked';
+            console.log(`  Domain ${domain}: PARKED`);
+          } else if (html.length > 500) {
+            websiteStatus = 'working';
+            console.log(`  Domain ${domain}: WORKING (${html.length} chars)`);
+          } else {
+            websiteStatus = 'broken';
+            console.log(`  Domain ${domain}: too small, likely broken`);
+          }
+          break;
+        }
+      } catch {} // DNS failure, timeout = domain doesn't exist
+    }
+
+    // If working website found via domain guessing → false alarm
+    if (websiteStatus === 'working') {
+      return res.json({
+        found: true,
+        falseAlarm: true,
+        data: {
+          notes: `⚠️ FALSE ALARM: Business has a working website at ${websiteUrl}\nSkipped contact enrichment.`,
+          social: { '🌐 Website': websiteUrl }
+        }
+      });
+    }
+
+    // Step 0b: If domain guessing didn't find a working site, do a quick SerpAPI search
+    // to catch websites with non-obvious domain names
+    if (websiteStatus !== 'parked' && websiteStatus !== 'broken') {
+      try {
+        console.log('  Domain guessing found nothing — doing SerpAPI website check...');
+        const { data: webCheckData } = await axios.get('https://serpapi.com/search.json', {
+          params: { q: `"${searchName}"`, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 5 }
+        });
+        addCost('cseSearch', req.session?.user?.username);
+
+        const webResults = (webCheckData.organic_results || []);
+        const dirDomainCheck = ['facebook.com', 'instagram.com', 'tiktok.com', 'linkedin.com', 'google.com',
+          'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr', 'brisko.gr', 'myciti.gr', '11888.gr',
+          'xrysietairia.eu', 'cybo.com', 'special-electronics.gr', 'yellowpages.gr'];
+
+        for (const r of webResults) {
+          const domain = (() => { try { return new URL(r.link).hostname; } catch { return ''; } })();
+          const isDirectory = dirDomainCheck.some(d => domain.includes(d));
+          if (!isDirectory && domain) {
+            // Found a non-directory result — check if it's a working website
+            try {
+              const resp = await axios.get(r.link, {
+                timeout: 5000, maxRedirects: 3,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                validateStatus: () => true
+              });
+              if (resp.status >= 200 && resp.status < 400) {
+                const html = (typeof resp.data === 'string' ? resp.data : '').toLowerCase();
+                const isParked = parkedKeywords.some(kw => html.includes(kw)) && html.length < 50000;
+                if (!isParked && html.length > 500) {
+                  console.log(`  SerpAPI found working website: ${r.link}`);
+                  return res.json({
+                    found: true,
+                    falseAlarm: true,
+                    data: {
+                      notes: `⚠️ FALSE ALARM: Business has a working website at ${r.link}\nFound via Google search.\nSkipped contact enrichment.`,
+                      social: { '🌐 Website': r.link }
+                    }
+                  });
+                } else if (isParked) {
+                  websiteStatus = 'parked';
+                  websiteUrl = r.link;
+                } else {
+                  websiteStatus = 'broken';
+                  websiteUrl = r.link;
+                }
+              }
+            } catch {}
+            break; // only check the first non-directory result
+          }
+        }
+      } catch (e) {
+        console.error('SerpAPI website check error:', e.response?.data?.error || e.message);
+      }
+    }
+
+    // Log website status for non-false-alarm cases
+    let websiteNote = '';
+    if (websiteStatus === 'parked') {
+      websiteNote = `\n🏗️ Domain ${websiteUrl} exists but is parked/placeholder — they may have bought it already`;
+    } else if (websiteStatus === 'broken') {
+      websiteNote = `\n⚠️ Domain ${websiteUrl} exists but is broken/down — potential selling point`;
+    }
+
+    // Step 1: SerpAPI directory search for contact enrichment
+    const targetSites = [
+      'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr',
+      'brisko.gr', 'myciti.gr', 'linkedin.com', '11888.gr',
+      'xrysietairia.eu', 'tiktok.com', 'instagram.com', 'facebook.com'
+    ];
+    const siteFilter = targetSites.map(s => `site:${s}`).join(' OR ');
+
+    // Step 1: SerpAPI Google Search — targeted to known useful sites
+    const query = `"${searchName}" ${siteFilter}`;
     let searchResults = [];
     try {
       const { data } = await axios.get('https://serpapi.com/search.json', {
@@ -931,18 +1064,18 @@ router.post('/enrich/social', async (req, res) => {
       return res.json({ found: false, data: { notes: `Search API error: ${errMsg}` } });
     }
 
-    console.log(`CSE returned ${searchResults.length} results`);
-    console.log('CSE results:', searchResults.map(r => r.link).join(', '));
+    console.log(`Search returned ${searchResults.length} results`);
+    console.log('Results:', searchResults.map(r => r.link).join(', '));
 
     if (!searchResults.length) {
-      return res.json({ found: false, data: { notes: `No results for query: ${query}` } });
+      return res.json({ found: false, data: { notes: `No results for: "${searchName}"${websiteNote}` } });
     }
 
     // Step 2: Scrape each result page for contact info
     const allContacts = { emails: new Set(), phones: new Set(), socials: {}, sources: [], failures: [] };
 
     // Sites to skip scraping (never have extractable emails, waste time)
-    const skipScrapeDomains = ['treatwell.gr', 'fresha.com', 'xrysietairia.eu', 'facebook.com', 'instagram.com', 'tiktok.com', 'google.com'];
+    const skipScrapeDomains = ['xrysietairia.eu', 'facebook.com', 'instagram.com', 'tiktok.com', 'google.com'];
 
     for (const result of searchResults.slice(0, 7)) {
       const domain = (() => { try { return new URL(result.link).hostname; } catch { return ''; } })();
@@ -997,7 +1130,7 @@ router.post('/enrich/social', async (req, res) => {
     }
 
     // Step 3b: Check for directory pages that likely have hidden email (e.g. vrisko.gr "send email" button)
-    const emailHintSites = ['vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com'];
+    const emailHintSites = ['brisko.gr', '11888.gr', 'myciti.gr', 'doctoranytime.gr'];
     const emailHintPages = [];
     for (const result of searchResults) {
       const hasHint = emailHintSites.some(d => result.link.includes(d));
@@ -1063,7 +1196,7 @@ router.post('/enrich/social', async (req, res) => {
     }
 
     // Own website
-    const dirDomains = ['facebook.com', 'instagram.com', 'tripadvisor.', 'booking.com', 'vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com', 'top100ofgreece.eu', 'aetoitisygeias.eu', 'yellowpages.gr', 'google.com', 'tiktok.com', 'linkedin.com', 'doctoranytime.', 'iatropedia.gr', 'fresha.com', 'booksy.com', 'classpass.com', 'car.gr', 'petfinder.com', 'airbnb.com', 'treatwell.gr', 'xrysietairia.eu'];
+    const dirDomains = ['facebook.com', 'instagram.com', 'tiktok.com', 'linkedin.com', 'google.com', 'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr', 'brisko.gr', 'myciti.gr', '11888.gr', 'xrysietairia.eu'];
     const ownWebsite = searchResults.find(r => !dirDomains.some(d => r.link.includes(d)));
     if (ownWebsite) {
       noteLines.push(`── Own Website ──`);
@@ -1071,10 +1204,68 @@ router.post('/enrich/social', async (req, res) => {
       noteLines.push('');
     }
 
-    const notesText = noteLines.join('\n');
+    const notesText = noteLines.join('\n') + websiteNote;
+
+    // Build dynamic social/contact object from everything found
+    const socialData = {};
+
+    // Add emails
+    if (emails.length) {
+      const bestEmail = emails.find(e =>
+        ['info@', 'contact@', 'hello@', 'mail@', 'booking@', 'reception@'].some(p => e.startsWith(p))
+      ) || emails[0];
+      socialData['📧 Email'] = bestEmail;
+      if (emails.length > 1) {
+        emails.filter(e => e !== bestEmail).forEach((e, i) => {
+          socialData[`📧 Email ${i + 2}`] = e;
+        });
+      }
+    }
+
+    // Add extra phones
+    phones.forEach((p, i) => {
+      socialData[`📞 Phone${i > 0 ? ' ' + (i + 2) : ' 2'}`] = p;
+    });
+
+    // Add all social/profile links dynamically
+    for (const [key, url] of Object.entries(allContacts.socials)) {
+      const label = key.charAt(0).toUpperCase() + key.slice(1);
+      socialData[label] = url;
+    }
+
+    // Add own website
+    if (ownWebsite) {
+      socialData['🌐 Website'] = ownWebsite.link;
+    }
+
+    // Add broken/parked domain info
+    if (websiteStatus === 'broken' && websiteUrl) {
+      socialData['⚠️ Domain (broken)'] = websiteUrl;
+    } else if (websiteStatus === 'parked' && websiteUrl) {
+      socialData['🏗️ Domain (parked)'] = websiteUrl;
+    }
+
+    // Add email hints
+    if (!emails.length && emailHintPages.length) {
+      emailHintPages.forEach((url, i) => {
+        socialData[`📧 Email hint${i > 0 ? ' ' + (i + 1) : ''}`] = url;
+      });
+    }
+
+    // Add any search result URLs from target directories (as reference links)
+    for (const r of searchResults) {
+      const domain = (() => { try { return new URL(r.link).hostname.replace('www.', ''); } catch { return ''; } })();
+      // Only add directory listings not already captured
+      if (domain && !Object.values(socialData).includes(r.link)) {
+        const knownDirs = ['brisko.gr', '11888.gr', 'doctoranytime.gr', 'myciti.gr', 'top100ofgreece.eu', 'lawjobs.gr', 'xrysietairia.eu'];
+        if (knownDirs.some(d => domain.includes(d))) {
+          socialData[`📋 ${domain}`] = r.link;
+        }
+      }
+    }
 
     console.log('=== ENRICH RESULT ===');
-    console.log(notesText);
+    console.log('Social data:', JSON.stringify(socialData, null, 2));
 
     // Check if CSE free tier is exhausted
     const costs = getCosts();
@@ -1082,8 +1273,8 @@ router.post('/enrich/social', async (req, res) => {
       ? `⚠️ You've used ${costs.cseDailyCount}/100 free searches today. Further searches cost $0.005 each.`
       : null;
 
-    const hasData = emails.length > 0 || phones.length > 0 || Object.keys(allContacts.socials).length > 0 || ownWebsite;
-    res.json({ found: hasData || searchResults.length > 0, data: { notes: notesText }, cseWarning });
+    const hasData = Object.keys(socialData).length > 0;
+    res.json({ found: hasData || searchResults.length > 0, data: { notes: notesText, social: socialData }, cseWarning });
   } catch (e) {
     console.error('Enrichment error:', e.message);
     res.status(500).json({ error: e.message });

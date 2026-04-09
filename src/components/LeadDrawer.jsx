@@ -85,7 +85,7 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     setLead(updated); onUpdate?.(updated)
   }
 
-  // ── Web enrichment (Google CSE + scrape) ──
+  // ── Web enrichment (SerpAPI + scrape) ──
   async function doAIEnrich() {
     setEnrichingAI(true)
     toast('Searching the web for contacts & social media...')
@@ -94,18 +94,36 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       const fields = result?.data || {}
       const noteText = fields.notes || (result?.found === false ? 'Nothing found' : 'No data returned')
 
-      // Always save to notes and show in info tab
-      save({ notes: noteText })
-      setNotes(noteText)
-      setTab('info')
+      // Handle false alarm — business has a working website
+      if (result?.falseAlarm) {
+        save({ notes: noteText, social: fields.social || {}, stage: 'false_alarm' })
+        setNotes(noteText)
+        setTab('info')
+        toast('⚠️ False alarm — business already has a working website', 'error')
+        return
+      }
 
-      if (result?.found) {
-        toast('✓ Search results saved to Notes')
+      // Merge new social data with existing
+      const existingSocial = lead.social || {}
+      const newSocial = fields.social || {}
+      const mergedSocial = { ...existingSocial, ...newSocial }
+
+      // Save notes + social data
+      save({ notes: noteText, social: mergedSocial })
+      setNotes(noteText)
+      setTab('contacts')
+
+      const count = Object.keys(newSocial).length
+      if (count > 0) {
+        toast(`✓ Found ${count} contact fields`)
+      } else if (result?.found) {
+        toast('Search completed — check notes for details')
+        setTab('info')
       } else {
         toast(noteText, 'error')
       }
 
-      // Warn if CSE free tier is exhausted
+      // Warn if free tier is exhausted
       if (result?.cseWarning) {
         setTimeout(() => toast(result.cseWarning, 'error'), 1500)
       }
@@ -349,35 +367,37 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                 </Sec>
               )}
 
-              {/* All found contact fields */}
+              {/* All found contact fields — dynamic from social JSON */}
               <Sec title="Found Contact Info">
-                {socialFields.every(([k]) => !lead[k] && k !== 'phone2')
+                {(!lead.social || Object.keys(lead.social).length === 0)
                   ? <div style={{ fontSize:12, color:'var(--text3)', padding:'0.5rem 0' }}>
-                      No social/platform contacts found yet — hit AI Search above.
+                      No contacts found yet — hit the search button above.
                     </div>
-                  : socialFields.map(([key, meta]) => {
-                      const val = lead[key]
+                  : Object.entries(lead.social).map(([key, val]) => {
                       if (!val) return null
-                      const isUrl = val.startsWith('http')
+                      const isUrl = typeof val === 'string' && val.startsWith('http')
                       return (
                         <div key={key} style={{ display:'flex', justifyContent:'space-between',
                           alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
-                          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                            <span style={{ fontSize:15 }}>{meta.icon}</span>
-                            <span style={{ fontSize:12, color:'var(--text2)' }}>{meta.label}</span>
-                          </div>
+                          <div style={{ fontSize:12, color:'var(--text2)', flexShrink:0, maxWidth:120 }}>{key}</div>
                           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                             {isUrl
                               ? <a href={val} target="_blank" rel="noreferrer"
                                   style={{ fontSize:12, color:'var(--blue)', maxWidth:220,
-                                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                                  {val.replace('https://','').replace('http://','')}
+                                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'block' }}>
+                                  {val.replace('https://','').replace('http://','').slice(0, 40)}
                                 </a>
                               : <span style={{ fontSize:12 }}>{val}</span>
                             }
                             <button onClick={() => { navigator.clipboard.writeText(val); toast('Copied!') }}
                               style={{ fontSize:11, color:'var(--text3)', background:'none',
                                 border:'none', cursor:'pointer' }}>copy</button>
+                            <button onClick={() => {
+                              const updated = { ...lead.social }
+                              delete updated[key]
+                              save({ social: updated })
+                            }} style={{ fontSize:11, color:'var(--red)', background:'none',
+                              border:'none', cursor:'pointer' }}>✕</button>
                           </div>
                         </div>
                       )
@@ -400,27 +420,20 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                 </Sec>
               )}
 
-              {/* Manually edit any field */}
-              <Sec title="Edit manually">
-                <div style={{ display:'grid', gap:8 }}>
-                  {[
-                    ['email',       'Email'],
-                    ['instagram',   'Instagram URL'],
-                    ['facebook',    'Facebook URL'],
-                    ['tiktok',      'TikTok URL'],
-                    ['tripadvisor', 'TripAdvisor URL'],
-                    ['efood',       'e-food URL'],
-                    ['wolt',        'Wolt URL'],
-                    ['booking',     'Booking.com URL'],
-                    ['phone2',      'Second phone'],
-                  ].map(([k, label]) => (
-                    <div key={k} style={{ display:'flex', gap:8, alignItems:'center' }}>
-                      <label style={{ fontSize:11, color:'var(--text2)', width:100, flexShrink:0 }}>{label}</label>
-                      <input defaultValue={lead[k] || ''} key={lead[k]}
-                        onBlur={e => { if (e.target.value !== (lead[k]||'')) save({ [k]: e.target.value || null }) }}
-                        placeholder={`—`} style={{ fontSize:12 }} />
-                    </div>
-                  ))}
+              {/* Add custom field */}
+              <Sec title="Add field manually">
+                <div style={{ display:'flex', gap:6 }}>
+                  <input id="newFieldKey" placeholder="Label (e.g. Website)" style={{ fontSize:12, flex:1 }} />
+                  <input id="newFieldVal" placeholder="Value or URL" style={{ fontSize:12, flex:2 }} />
+                  <Btn sm onClick={() => {
+                    const k = document.getElementById('newFieldKey').value.trim()
+                    const v = document.getElementById('newFieldVal').value.trim()
+                    if (!k || !v) return
+                    save({ social: { ...(lead.social || {}), [k]: v } })
+                    document.getElementById('newFieldKey').value = ''
+                    document.getElementById('newFieldVal').value = ''
+                    toast(`Added ${k}`)
+                  }}>+</Btn>
                 </div>
               </Sec>
             </div>
