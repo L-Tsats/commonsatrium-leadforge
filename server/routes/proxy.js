@@ -973,61 +973,9 @@ router.post('/enrich/social', async (req, res) => {
       });
     }
 
-    // Step 0b: If domain guessing didn't find a working site, do a quick SerpAPI search
-    // to catch websites with non-obvious domain names
-    if (websiteStatus !== 'parked' && websiteStatus !== 'broken') {
-      try {
-        console.log('  Domain guessing found nothing — doing SerpAPI website check...');
-        const { data: webCheckData } = await axios.get('https://serpapi.com/search.json', {
-          params: { q: `"${searchName}"`, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 5 }
-        });
-        addCost('cseSearch', req.session?.user?.username);
-
-        const webResults = (webCheckData.organic_results || []);
-        const dirDomainCheck = ['facebook.com', 'instagram.com', 'tiktok.com', 'linkedin.com', 'google.com',
-          'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr', 'brisko.gr', 'myciti.gr', '11888.gr',
-          'xrysietairia.eu', 'cybo.com', 'special-electronics.gr', 'yellowpages.gr'];
-
-        for (const r of webResults) {
-          const domain = (() => { try { return new URL(r.link).hostname; } catch { return ''; } })();
-          const isDirectory = dirDomainCheck.some(d => domain.includes(d));
-          if (!isDirectory && domain) {
-            // Found a non-directory result — check if it's a working website
-            try {
-              const resp = await axios.get(r.link, {
-                timeout: 5000, maxRedirects: 3,
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                validateStatus: () => true
-              });
-              if (resp.status >= 200 && resp.status < 400) {
-                const html = (typeof resp.data === 'string' ? resp.data : '').toLowerCase();
-                const isParked = parkedKeywords.some(kw => html.includes(kw)) && html.length < 50000;
-                if (!isParked && html.length > 500) {
-                  console.log(`  SerpAPI found working website: ${r.link}`);
-                  return res.json({
-                    found: true,
-                    falseAlarm: true,
-                    data: {
-                      notes: `⚠️ FALSE ALARM: Business has a working website at ${r.link}\nFound via Google search.\nSkipped contact enrichment.`,
-                      social: { '🌐 Website': r.link }
-                    }
-                  });
-                } else if (isParked) {
-                  websiteStatus = 'parked';
-                  websiteUrl = r.link;
-                } else {
-                  websiteStatus = 'broken';
-                  websiteUrl = r.link;
-                }
-              }
-            } catch {}
-            break; // only check the first non-directory result
-          }
-        }
-      } catch (e) {
-        console.error('SerpAPI website check error:', e.response?.data?.error || e.message);
-      }
-    }
+    // Step 0b: If domain guessing didn't find a working site, the SerpAPI enrichment
+    // search below will also check for non-directory websites in the results.
+    // No separate search needed — we'll check during result processing.
 
     // Log website status for non-false-alarm cases
     let websiteNote = '';
@@ -1038,25 +986,29 @@ router.post('/enrich/social', async (req, res) => {
     }
 
     // Step 1: SerpAPI directory search for contact enrichment
+    // Search without site: filters (they mess up relevance), filter results in code instead
     const targetSites = [
       'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr',
       'brisko.gr', 'myciti.gr', 'linkedin.com', '11888.gr',
       'xrysietairia.eu', 'tiktok.com', 'instagram.com', 'facebook.com'
     ];
-    const siteFilter = targetSites.map(s => `site:${s}`).join(' OR ');
 
-    // Step 1: SerpAPI Google Search — targeted to known useful sites
-    const query = `"${searchName}" ${siteFilter}`;
+    const query = `"${searchName}"`;
     let searchResults = [];
     try {
       const { data } = await axios.get('https://serpapi.com/search.json', {
         params: { q: query, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 10 }
       });
-      searchResults = (data.organic_results || []).map(item => ({
-        title: item.title,
-        link: item.link,
-        snippet: item.snippet || ''
-      }));
+      // Keep all results but mark which are from target sites
+      searchResults = (data.organic_results || []).map(item => {
+        const domain = (() => { try { return new URL(item.link).hostname; } catch { return ''; } })();
+        return {
+          title: item.title,
+          link: item.link,
+          snippet: item.snippet || '',
+          isTargetSite: targetSites.some(t => domain.includes(t))
+        };
+      });
       addCost('cseSearch', req.session?.user?.username);
     } catch (e) {
       const errMsg = e.response?.data?.error || e.message;
@@ -1064,11 +1016,51 @@ router.post('/enrich/social', async (req, res) => {
       return res.json({ found: false, data: { notes: `Search API error: ${errMsg}` } });
     }
 
-    console.log(`Search returned ${searchResults.length} results`);
-    console.log('Results:', searchResults.map(r => r.link).join(', '));
+    console.log(`Search returned ${searchResults.length} results (${searchResults.filter(r => r.isTargetSite).length} from target sites)`);
+    console.log('Results:', searchResults.map(r => `${r.isTargetSite ? '✓' : '·'} ${r.link}`).join('\n  '));
 
     if (!searchResults.length) {
       return res.json({ found: false, data: { notes: `No results for: "${searchName}"${websiteNote}` } });
+    }
+
+    // Step 1b: Check if any non-directory result is a working website (false alarm detection)
+    if (websiteStatus !== 'working' && websiteStatus !== 'parked' && websiteStatus !== 'broken') {
+      const allKnownDirs = [...targetSites, 'cybo.com', 'special-electronics.gr', 'yellowpages.gr', 'google.com'];
+      for (const r of searchResults) {
+        const domain = (() => { try { return new URL(r.link).hostname; } catch { return ''; } })();
+        if (!domain || allKnownDirs.some(d => domain.includes(d))) continue;
+
+        // Non-directory result found — check if it's a real working website
+        try {
+          const resp = await axios.get(r.link, {
+            timeout: 5000, maxRedirects: 3,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            validateStatus: () => true
+          });
+          if (resp.status >= 200 && resp.status < 400) {
+            const html = (typeof resp.data === 'string' ? resp.data : '').toLowerCase();
+            const isParked = parkedKeywords.some(kw => html.includes(kw)) && html.length < 50000;
+            if (!isParked && html.length > 500) {
+              console.log(`  Search found working website: ${r.link}`);
+              return res.json({
+                found: true,
+                falseAlarm: true,
+                data: {
+                  notes: `⚠️ FALSE ALARM: Business has a working website at ${r.link}\nFound via Google search.\nSkipped contact enrichment.`,
+                  social: { '🌐 Website': r.link }
+                }
+              });
+            } else if (isParked) {
+              websiteStatus = 'parked'; websiteUrl = r.link;
+              websiteNote = `\n🏗️ Domain ${r.link} exists but is parked/placeholder`;
+            } else {
+              websiteStatus = 'broken'; websiteUrl = r.link;
+              websiteNote = `\n⚠️ Domain ${r.link} exists but is broken/down`;
+            }
+          }
+        } catch {}
+        break; // only check the first non-directory result
+      }
     }
 
     // Step 2: Scrape each result page for contact info
