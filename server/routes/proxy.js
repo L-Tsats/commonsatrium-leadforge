@@ -924,13 +924,17 @@ router.post('/enrich/social', async (req, res) => {
       }));
       addCost('cseSearch', req.session?.user?.username);
     } catch (e) {
-      console.error('Google CSE error:', e.response?.data?.error?.message || e.message);
+      const errMsg = e.response?.data?.error?.message || e.message;
+      console.error('Google CSE error:', errMsg);
+      console.error('Google CSE full error:', JSON.stringify(e.response?.data || {}));
+      return res.json({ found: false, data: { notes: `CSE API error: ${errMsg}` } });
     }
 
     console.log(`CSE returned ${searchResults.length} results`);
+    console.log('CSE results:', searchResults.map(r => r.link).join(', '));
 
     if (!searchResults.length) {
-      return res.json({ found: false, data: { notes: 'No search results found' } });
+      return res.json({ found: false, data: { notes: `No results for query: ${query}` } });
     }
 
     // Step 2: Scrape each result page for contact info
@@ -1001,7 +1005,7 @@ router.post('/enrich/social', async (req, res) => {
       }
     }
 
-    // Step 4: Build result — pick best email, filter out known phone
+    // Step 4: Build readable notes with everything found
     const emails = [...allContacts.emails];
     const phones = [...allContacts.phones].filter(p => {
       const clean = p.replace(/\D/g, '');
@@ -1009,39 +1013,67 @@ router.post('/enrich/social', async (req, res) => {
       return clean !== knownClean && clean.length >= 10;
     });
 
-    const bestEmail = emails.find(e =>
-      ['info@', 'contact@', 'hello@', 'mail@', 'booking@', 'reception@'].some(p => e.startsWith(p))
-    ) || emails[0] || null;
+    // Build notes string
+    const noteLines = [];
+    noteLines.push(`🔍 Search: "${searchName}" — ${searchResults.length} results found`);
+    noteLines.push('');
 
-    const result = {
-      email: bestEmail,
-      emailHint: !bestEmail && emailHintPages.length ? emailHintPages[0] : null,
-      instagram: allContacts.socials.instagram || null,
-      facebook: allContacts.socials.facebook || null,
-      tiktok: allContacts.socials.tiktok || null,
-      tripadvisor: allContacts.socials.tripadvisor || null,
-      booking: allContacts.socials.booking || null,
-      website: null,
-      phone2: phones[0] || null,
-      notes: `Searched ${searchResults.length} results, scraped ${allContacts.sources.length} pages.\n${allContacts.sources.join('\n')}${allContacts.failures.length ? '\n' + allContacts.failures.join('\n') : ''}${!bestEmail && emailHintPages.length ? '\n📧 Email likely available at: ' + emailHintPages.join(', ') : ''}`
-    };
-
-    // Try to identify their own website (not a directory)
-    const dirDomains = ['facebook.com', 'instagram.com', 'tripadvisor.', 'booking.com', 'vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com', 'top100ofgreece.eu', 'aetoitisygeias.eu', 'yellowpages.gr', 'google.com', 'tiktok.com', 'linkedin.com', 'doctoranytime.', 'iatropedia.gr', 'fresha.com', 'booksy.com', 'classpass.com', 'car.gr', 'petfinder.com', 'airbnb.com'];
+    // List all search results
+    noteLines.push('── Search Results ──');
     for (const r of searchResults) {
-      const isDirSite = dirDomains.some(d => r.link.includes(d));
-      if (!isDirSite) {
-        result.website = r.link;
-        break;
-      }
+      noteLines.push(`• ${r.title}`);
+      noteLines.push(`  ${r.link}`);
+      if (r.snippet) noteLines.push(`  ${r.snippet.slice(0, 150)}`);
+      noteLines.push('');
     }
 
-    // Filter nulls
-    const filtered = Object.fromEntries(
-      Object.entries(result).filter(([, v]) => v && v !== null)
-    );
+    // Scrape report
+    if (allContacts.sources.length || allContacts.failures.length) {
+      noteLines.push('── Scrape Report ──');
+      allContacts.sources.forEach(s => noteLines.push(s));
+      allContacts.failures.forEach(f => noteLines.push(f));
+      noteLines.push('');
+    }
 
-    console.log('=== ENRICH RESULT:', JSON.stringify(filtered, null, 2), '===');
+    // Extracted data
+    if (emails.length) {
+      noteLines.push('── Emails Found ──');
+      emails.forEach(e => noteLines.push(`📧 ${e}`));
+      noteLines.push('');
+    }
+    if (phones.length) {
+      noteLines.push('── Extra Phones ──');
+      phones.forEach(p => noteLines.push(`📞 ${p}`));
+      noteLines.push('');
+    }
+    if (Object.keys(allContacts.socials).length) {
+      noteLines.push('── Social / Profiles ──');
+      for (const [k, v] of Object.entries(allContacts.socials)) {
+        noteLines.push(`${k}: ${v}`);
+      }
+      noteLines.push('');
+    }
+
+    // Email hints
+    if (!emails.length && emailHintPages.length) {
+      noteLines.push('── Email Hints (check manually) ──');
+      emailHintPages.forEach(url => noteLines.push(`📧 ${url}`));
+      noteLines.push('');
+    }
+
+    // Own website
+    const dirDomains = ['facebook.com', 'instagram.com', 'tripadvisor.', 'booking.com', 'vrisko.gr', 'xo.gr', '11888.gr', 'findgr.com', 'top100ofgreece.eu', 'aetoitisygeias.eu', 'yellowpages.gr', 'google.com', 'tiktok.com', 'linkedin.com', 'doctoranytime.', 'iatropedia.gr', 'fresha.com', 'booksy.com', 'classpass.com', 'car.gr', 'petfinder.com', 'airbnb.com', 'treatwell.gr', 'xrysietairia.eu'];
+    const ownWebsite = searchResults.find(r => !dirDomains.some(d => r.link.includes(d)));
+    if (ownWebsite) {
+      noteLines.push(`── Own Website ──`);
+      noteLines.push(`🌐 ${ownWebsite.link}`);
+      noteLines.push('');
+    }
+
+    const notesText = noteLines.join('\n');
+
+    console.log('=== ENRICH RESULT ===');
+    console.log(notesText);
 
     // Check if CSE free tier is exhausted
     const costs = getCosts();
@@ -1049,7 +1081,8 @@ router.post('/enrich/social', async (req, res) => {
       ? `⚠️ You've used ${costs.cseDailyCount}/100 free searches today. Further searches cost $0.005 each.`
       : null;
 
-    res.json({ found: Object.keys(filtered).filter(k => k !== 'notes').length > 0, data: filtered, cseWarning });
+    const hasData = emails.length > 0 || phones.length > 0 || Object.keys(allContacts.socials).length > 0 || ownWebsite;
+    res.json({ found: hasData || searchResults.length > 0, data: { notes: notesText }, cseWarning });
   } catch (e) {
     console.error('Enrichment error:', e.message);
     res.status(500).json({ error: e.message });

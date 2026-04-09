@@ -85,45 +85,28 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
     setLead(updated); onUpdate?.(updated)
   }
 
-  // ── Hunter email find ──
-  // ── AI social enrichment (Perplexity) ──
+  // ── Web enrichment (Google CSE + scrape) ──
   async function doAIEnrich() {
     setEnrichingAI(true)
     toast('Searching the web for contacts & social media...')
     try {
       const result = await enrichSocial(lead)
-      if (!result?.found) { toast('Nothing found online for this business', 'error'); return }
-      const fields = result.data || {}
-      // Merge into lead — don't overwrite existing email if already found
-      const updates = {
-        instagram:   fields.instagram   || lead.instagram   || null,
-        facebook:    fields.facebook    || lead.facebook    || null,
-        tiktok:      fields.tiktok      || lead.tiktok      || null,
-        tripadvisor: fields.tripadvisor || lead.tripadvisor || null,
-        efood:       fields.efood       || lead.efood       || null,
-        wolt:        fields.wolt        || lead.wolt        || null,
-        booking:     fields.booking     || lead.booking     || null,
-        phone2:      fields.phone2      || lead.phone2      || null,
-        // Save scrape report to notes
-        notes: fields.notes || lead.notes || null,
-        // Only update email if we don't have one yet
-        ...(!lead.email && fields.email ? { email: fields.email, emailFound: true, emailSource: 'web_scrape' } : {}),
-        // If they have a website after all, flag it
-        ...(fields.website ? { websiteFound: fields.website } : {})
-      }
-      save(updates)
-      setNotes(updates.notes || '')
-      const found = Object.entries(updates).filter(([k,v]) => v && !['notes'].includes(k)).length
+      const fields = result?.data || {}
+      const noteText = fields.notes || (result?.found === false ? 'Nothing found' : 'No data returned')
 
-      // Show email hint if no direct email but directory listing found
-      if (!fields.email && fields.emailHint) {
-        toast(`📧 No direct email found, but check: ${fields.emailHint}`, 'info')
+      // Always save to notes and show in info tab
+      save({ notes: noteText })
+      setNotes(noteText)
+      setTab('info')
+
+      if (result?.found) {
+        toast('✓ Search results saved to Notes')
       } else {
-        toast(`✓ Found ${found} contact fields`)
+        toast(noteText, 'error')
       }
 
       // Warn if CSE free tier is exhausted
-      if (result.cseWarning) {
+      if (result?.cseWarning) {
         setTimeout(() => toast(result.cseWarning, 'error'), 1500)
       }
     } catch (e) {
