@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { fillTemplate, SOCIAL_META, toSlug } from '../lib/store'
 import { generateBrief } from '../lib/brief'
-import { updateLead, getTemplates, sendEmail, queueEmail, captureScreenshot, enrichSocial, analyzePhotos, refreshLeadPhotos, getLeadImages, getAssetManifest, filterManifestForCategory } from '../lib/api'
+import { updateLead, getTemplates, sendEmail, queueEmail, captureScreenshot, enrichSocial, analyzePhotos, refreshLeadPhotos, downloadLeadPhotos, getLeadImages, getAssetManifest, filterManifestForCategory } from '../lib/api'
 import { Btn, Stars, StageBadge, ContactBadge, Spinner, Badge } from './ui'
 import DomainsTab from './DomainsTab'
 
@@ -459,9 +459,12 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                     <Btn sm onClick={async () => {
                       setFetchingPhotos(true)
                       try {
+                        const slug = lead.slug || toSlug(lead.name)
                         const { photoRefs } = await refreshLeadPhotos(lead)
                         if (photoRefs.length) {
+                          await downloadLeadPhotos(slug, photoRefs)
                           save({ photoRefs })
+                          loadFolderPhotos()
                           setVisionAnalysis(''); setBrief('')
                           toast(`✓ Re-fetched ${photoRefs.length} photos`)
                         } else { toast('No photos found', 'error') }
@@ -497,10 +500,13 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                     <Btn sm onClick={async () => {
                       setFetchingPhotos(true)
                       try {
+                        const slug = lead.slug || toSlug(lead.name)
                         const { photoRefs } = await refreshLeadPhotos(lead)
                         if (photoRefs.length) {
+                          await downloadLeadPhotos(slug, photoRefs)
                           save({ photoRefs })
-                          toast(`✓ Found ${photoRefs.length} photos`)
+                          loadFolderPhotos()
+                          toast(`✓ Downloaded ${photoRefs.length} photos`)
                         } else {
                           toast('No photos on Google Maps for this business', 'error')
                         }
