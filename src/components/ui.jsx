@@ -72,6 +72,11 @@ export function StageBadge({ stage }) {
 
 export function ContactBadge({ lead }) {
   if (lead.email) return <Badge color="green">📧 Email</Badge>
+  const social = lead.social || {}
+  const hasSocials = Object.keys(social).some(k =>
+    k.includes('Facebook') || k.includes('Instagram') || k.includes('Tiktok') || k.includes('Linkedin')
+  )
+  if (hasSocials) return <Badge color="blue">💬 Socials</Badge>
   if (lead.phone) return <Badge color="amber">📞 Phone</Badge>
   return <Badge color="red">No contact</Badge>
 }

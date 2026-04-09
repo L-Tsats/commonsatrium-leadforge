@@ -833,9 +833,9 @@ Return ONLY valid JSON array, no markdown.`;
 
 // ─── Contact Enrichment (Google CSE → Scrape → Extract) ─────────────────────
 
-// Extract emails, phones, and social links from raw HTML
+// Extract emails from raw HTML (no phones, no social — those come from search results only)
 function extractContactsFromHtml(html, url) {
-  const contacts = { emails: [], phones: [], socials: {} };
+  const contacts = { emails: [] };
 
   // Emails — standard format
   const emailRe = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi;
@@ -855,40 +855,12 @@ function extractContactsFromHtml(html, url) {
     if (cleaned.includes('@')) contacts.emails.push(cleaned);
   }
 
-  // mailto: links (sometimes hidden in href but not visible as text)
+  // mailto: links
   const mailtoRe = /mailto:([\w.+-]+@[\w.-]+\.[a-z]{2,})/gi;
   let mailtoMatch;
   while ((mailtoMatch = mailtoRe.exec(html)) !== null) {
     contacts.emails.push(mailtoMatch[1].toLowerCase());
   }
-
-  // Greek phone numbers — +30, 2xx, 69x patterns
-  const phoneRe = /(?:\+30[\s.-]?)?(?:2[1-9]\d[\s.-]?\d{3}[\s.-]?\d{4}|69\d[\s.-]?\d{3}[\s.-]?\d{4})/g;
-  const phoneMatches = html.match(phoneRe) || [];
-  contacts.phones.push(...phoneMatches.map(p => p.replace(/[\s.-]/g, '')));
-
-  // Social links from href attributes
-  const hrefRe = /href=["']([^"']+)["']/gi;
-  let m;
-  while ((m = hrefRe.exec(html)) !== null) {
-    const href = m[1];
-    if (href.includes('facebook.com/') && !href.includes('facebook.com/sharer'))
-      contacts.socials.facebook = contacts.socials.facebook || href;
-    if (href.includes('instagram.com/') && !href.includes('instagram.com/p/'))
-      contacts.socials.instagram = contacts.socials.instagram || href;
-    if (href.includes('tiktok.com/@'))
-      contacts.socials.tiktok = contacts.socials.tiktok || href;
-    if (href.includes('tripadvisor.'))
-      contacts.socials.tripadvisor = contacts.socials.tripadvisor || href;
-    if (href.includes('booking.com/'))
-      contacts.socials.booking = contacts.socials.booking || href;
-  }
-
-  // Also check for social links in plain text (not just href)
-  const fbMatch = html.match(/https?:\/\/(?:www\.)?facebook\.com\/[a-zA-Z0-9._-]+/i);
-  if (fbMatch && !contacts.socials.facebook) contacts.socials.facebook = fbMatch[0];
-  const igMatch = html.match(/https?:\/\/(?:www\.)?instagram\.com\/[a-zA-Z0-9._]+/i);
-  if (igMatch && !contacts.socials.instagram) contacts.socials.instagram = igMatch[0];
 
   // Deduplicate emails
   contacts.emails = [...new Set(contacts.emails)];
@@ -1064,7 +1036,7 @@ router.post('/enrich/social', async (req, res) => {
     }
 
     // Step 2: Scrape each result page for contact info
-    const allContacts = { emails: new Set(), phones: new Set(), socials: {}, sources: [], failures: [] };
+    const allContacts = { emails: new Set(), socials: {}, sources: [], failures: [] };
 
     // Sites to skip scraping (never have extractable emails, waste time)
     const skipScrapeDomains = ['xrysietairia.eu', 'facebook.com', 'instagram.com', 'tiktok.com', 'google.com'];
@@ -1098,15 +1070,11 @@ router.post('/enrich/social', async (req, res) => {
         const contacts = extractContactsFromHtml(html, result.link);
 
         contacts.emails.forEach(e => allContacts.emails.add(e));
-        contacts.phones.forEach(p => allContacts.phones.add(p));
-        for (const [k, v] of Object.entries(contacts.socials)) {
-          if (!allContacts.socials[k]) allContacts.socials[k] = v;
-        }
 
-        const domain = new URL(result.link).hostname;
-        allContacts.sources.push(`✓ ${domain}: ${contacts.emails.length} emails, ${contacts.phones.length} phones, ${Object.keys(contacts.socials).length} socials`);
+        const scrapedDomain = new URL(result.link).hostname;
+        allContacts.sources.push(`✓ ${scrapedDomain}: ${contacts.emails.length} emails`);
 
-        console.log(`  Scraped ${result.link}: ${contacts.emails.length} emails, ${contacts.phones.length} phones`);
+        console.log(`  Scraped ${result.link}: ${contacts.emails.length} emails`);
       } catch (e) {
         const reason = e.response ? `${e.response.status} ${e.response.statusText || ''}`.trim() : e.code || e.message;
         allContacts.failures.push(`✗ ${domain}: ${reason}`);
@@ -1133,11 +1101,6 @@ router.post('/enrich/social', async (req, res) => {
 
     // Step 4: Build readable notes with everything found
     const emails = [...allContacts.emails];
-    const phones = [...allContacts.phones].filter(p => {
-      const clean = p.replace(/\D/g, '');
-      const knownClean = (phone || '').replace(/\D/g, '');
-      return clean !== knownClean && clean.length >= 10;
-    });
 
     // Build notes string
     const noteLines = [];
@@ -1167,11 +1130,6 @@ router.post('/enrich/social', async (req, res) => {
       emails.forEach(e => noteLines.push(`📧 ${e}`));
       noteLines.push('');
     }
-    if (phones.length) {
-      noteLines.push('── Extra Phones ──');
-      phones.forEach(p => noteLines.push(`📞 ${p}`));
-      noteLines.push('');
-    }
     if (Object.keys(allContacts.socials).length) {
       noteLines.push('── Social / Profiles ──');
       for (const [k, v] of Object.entries(allContacts.socials)) {
@@ -1188,7 +1146,9 @@ router.post('/enrich/social', async (req, res) => {
     }
 
     // Own website
-    const dirDomains = ['facebook.com', 'instagram.com', 'tiktok.com', 'linkedin.com', 'google.com', 'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr', 'brisko.gr', 'myciti.gr', '11888.gr', 'xrysietairia.eu'];
+    const dirDomains = ['facebook.com', 'instagram.com', 'tiktok.com', 'linkedin.com', 'google.com',
+      'top100ofgreece.eu', 'lawjobs.gr', 'doctoranytime.gr', 'brisko.gr', 'myciti.gr', '11888.gr',
+      'xrysietairia.eu', 'xo.gr', 'cybo.com', 'special-electronics.gr'];
     const ownWebsite = searchResults.find(r => !dirDomains.some(d => r.link.includes(d)));
     if (ownWebsite) {
       noteLines.push(`── Own Website ──`);
@@ -1214,12 +1174,7 @@ router.post('/enrich/social', async (req, res) => {
       }
     }
 
-    // Add extra phones
-    phones.forEach((p, i) => {
-      socialData[`📞 Phone${i > 0 ? ' ' + (i + 2) : ' 2'}`] = p;
-    });
-
-    // Add all social/profile links dynamically
+    // Add social/profile links only from search result URLs (not scraped from directory HTML)
     for (const [key, url] of Object.entries(allContacts.socials)) {
       const label = key.charAt(0).toUpperCase() + key.slice(1);
       socialData[label] = url;
@@ -1244,14 +1199,20 @@ router.post('/enrich/social', async (req, res) => {
       });
     }
 
-    // Add any search result URLs from target directories (as reference links)
+    // Add directory listing links with friendly labels
+    const dirLabels = {
+      'top100ofgreece.eu': '📋 Top100 Greece', 'lawjobs.gr': '📋 LawJobs',
+      'doctoranytime.gr': '📋 Doctoranytime', 'brisko.gr': '📋 Brisko',
+      'myciti.gr': '📋 MyCiti', '11888.gr': '📋 11888',
+      'xrysietairia.eu': '📋 Χρυσή Εταιρεία', 'xo.gr': '📋 XO.gr'
+    };
     for (const r of searchResults) {
       const domain = (() => { try { return new URL(r.link).hostname.replace('www.', ''); } catch { return ''; } })();
-      // Only add directory listings not already captured
       if (domain && !Object.values(socialData).includes(r.link)) {
-        const knownDirs = ['brisko.gr', '11888.gr', 'doctoranytime.gr', 'myciti.gr', 'top100ofgreece.eu', 'lawjobs.gr', 'xrysietairia.eu'];
-        if (knownDirs.some(d => domain.includes(d))) {
-          socialData[`📋 ${domain}`] = r.link;
+        const matchedDir = Object.keys(dirLabels).find(d => domain.includes(d));
+        if (matchedDir) {
+          const label = dirLabels[matchedDir];
+          if (!socialData[label]) socialData[label] = r.link;
         }
       }
     }
@@ -1266,7 +1227,11 @@ router.post('/enrich/social', async (req, res) => {
       : null;
 
     const hasData = Object.keys(socialData).length > 0;
-    res.json({ found: hasData || searchResults.length > 0, data: { notes: notesText, social: socialData }, cseWarning });
+    const bestEmail = emails.find(e =>
+      ['info@', 'contact@', 'hello@', 'mail@', 'booking@', 'reception@'].some(p => e.startsWith(p))
+    ) || emails[0] || null;
+
+    res.json({ found: hasData || searchResults.length > 0, data: { notes: notesText, social: socialData, email: bestEmail }, cseWarning });
   } catch (e) {
     console.error('Enrichment error:', e.message);
     res.status(500).json({ error: e.message });

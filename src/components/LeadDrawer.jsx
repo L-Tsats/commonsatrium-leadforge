@@ -108,8 +108,13 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       const newSocial = fields.social || {}
       const mergedSocial = { ...existingSocial, ...newSocial }
 
-      // Save notes + social data
-      save({ notes: noteText, social: mergedSocial })
+      // Save notes + social data + email if found
+      const updates = { notes: noteText, social: mergedSocial }
+      if (fields.email && !lead.email) {
+        updates.email = fields.email
+        updates.emailFound = true
+      }
+      save(updates)
       setNotes(noteText)
       setTab('contacts')
 
