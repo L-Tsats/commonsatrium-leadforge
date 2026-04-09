@@ -965,7 +965,7 @@ router.post('/enrich/social', async (req, res) => {
       'xrysietairia.eu', 'tiktok.com', 'instagram.com', 'facebook.com'
     ];
 
-    const query = searchName;
+    const query = `${searchName} ${targetSites.map(s => 'site:' + s).join(' OR ')}`;
     let searchResults = [];
     try {
       const { data } = await axios.get('https://serpapi.com/search.json', {
