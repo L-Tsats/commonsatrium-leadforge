@@ -9,7 +9,7 @@ export function generateBrief(lead, { visionAnalysis, folderPhotos, commonAssets
 
   return `Build a single-page homepage for a local ${cat.toLowerCase() || 'business'}.
 One page, sections stacked vertically, no routing, no other pages.
-Use Next.js 14 (App Router) + Tailwind CSS. Mobile-first, visually stunning.
+Single self-contained index.html file using Tailwind CSS via CDN and Google Fonts. Mobile-first, visually stunning.
 ${visionAnalysis ? `
 IMPORTANT: A visual analysis of this business's real photos is included below.
 This is your PRIMARY design reference — match the actual vibe, colors, and feel.` : ''}
@@ -72,12 +72,39 @@ ${personalNotes}
 ═══════════════════════════════════════════
 TECH
 ═══════════════════════════════════════════
-- Next.js 14 App Router, Tailwind CSS, single page (page.tsx only)
-- LOCAL PROTOTYPE for demo — not production
-- No routing, no other pages, no deployment config
-- No analytics, no SEO, no sitemap
+- Single self-contained index.html file — NO frameworks, NO build step
+- Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
+- Google Fonts via <link> tag in <head>
+- All CSS either via Tailwind classes or a <style> block in <head>
+- All JS (toast popup, smooth scroll, mobile menu) in a <script> block at end of <body>
+- Images referenced as relative paths: photos/filename.jpg, common-assets/category/filename.jpg
+- Must work by simply opening the file in a browser or serving from any static host
+- No npm, no build, no Node.js, no React, no Next.js
 - Focus 100% on visual quality — must look stunning
-- Use images from photos/ folder and common-assets/ if available
+
+═══════════════════════════════════════════
+NAVIGATION & FUTURE PAGES PREVIEW
+═══════════════════════════════════════════
+Add a sticky top navigation bar with the business name on the left and buttons for future pages on the right.
+The nav buttons should be based on the business category:
+${navButtons(lead.category)}
+
+IMPORTANT: These buttons do NOT link to other pages. Instead, when clicked, they show a small
+toast/popup notification that says "This page will be activated after the website goes live"
+and auto-dismisses after 3 seconds. Use a simple CSS animation for the toast — slide in from top, fade out.
+The "Home" button should smooth-scroll to the top of the page.
+
+═══════════════════════════════════════════
+FOOTER & BRANDING
+═══════════════════════════════════════════
+At the very bottom of the footer, add a subtle line:
+  "Website concept created for ${lead.name}"
+in small, muted text (opacity 0.5, ~11px).
+
+Also add a fixed-position watermark in the bottom-right corner:
+  "⚡ LeadsForger"
+Style: small (11px), semi-transparent (opacity 0.3), subtle background pill, fixed position.
+It should not interfere with content but be visible on scroll.
 ${visionAnalysis && (folderPhotos?.length || lead.photoRefs?.length) ? `
 ═══════════════════════════════════════════
 PHOTO ASSETS AVAILABLE
@@ -99,7 +126,7 @@ ${commonAssets.map(a => `  ${a.category}/${a.file} — ${a.description}`).join('
 Use these for sections where no business-specific photo is available.
 Business photos from photos/ always take priority over stock.` : ''}
 
-Build everything in this folder. One page, make it beautiful.
+Build everything in a single index.html file in this folder. Make it beautiful.
 Ask me before making major design decisions.`
 }
 
@@ -254,6 +281,28 @@ function palette(cat = '') {
   if (c.includes('hotel')||c.includes('guest'))
     return 'Sand, deep teal, gold accents'
   return 'Warm white, deep slate, one bold accent'
+}
+
+function navButtons(cat = '') {
+  const c = (cat || '').toLowerCase()
+  const base = ['Home']
+  if (c.includes('restaurant') || c.includes('cafe') || c.includes('bakery'))
+    return [...base, 'Menu', 'Reservations', 'Gallery', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('hair') || c.includes('beauty') || c.includes('spa') || c.includes('nail') || c.includes('barber'))
+    return [...base, 'Services', 'Book Appointment', 'Gallery', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('gym') || c.includes('fitness') || c.includes('yoga') || c.includes('pilates'))
+    return [...base, 'Classes', 'Membership', 'Schedule', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('physio') || c.includes('dental') || c.includes('medical') || c.includes('clinic'))
+    return [...base, 'Services', 'Our Team', 'Book Appointment', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('hotel') || c.includes('guest') || c.includes('boutique'))
+    return [...base, 'Rooms', 'Amenities', 'Book Now', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('law') || c.includes('account') || c.includes('notary'))
+    return [...base, 'Practice Areas', 'Our Team', 'Consultation', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('auto') || c.includes('car') || c.includes('tire'))
+    return [...base, 'Services', 'Get a Quote', 'Gallery', 'Contact'].map(b => `  - ${b}`).join('\n')
+  if (c.includes('pet') || c.includes('vet'))
+    return [...base, 'Services', 'Book Appointment', 'Gallery', 'Contact'].map(b => `  - ${b}`).join('\n')
+  return [...base, 'Services', 'About', 'Gallery', 'Contact'].map(b => `  - ${b}`).join('\n')
 }
 
 function extractThemes(reviews = []) {

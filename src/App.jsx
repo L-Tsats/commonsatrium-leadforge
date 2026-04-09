@@ -60,12 +60,29 @@ export default function App() {
   // Authenticated → show app
   const groups = [...new Set(NAV.map(n => n.group))]
   const Page = PAGES[active]
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
+      {/* Mobile hamburger */}
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+        position:'fixed', top:10, left:10, zIndex:1001, background:'var(--surface)',
+        border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'6px 10px',
+        fontSize:18, cursor:'pointer', display:'none',
+      }} className="sidebar-toggle">
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{
+        position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:999, display:'none'
+      }} className="sidebar-overlay" />}
+
       {/* Sidebar */}
-      <aside style={{ width:208, minWidth:208, background:'var(--surface)',
-        borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'1.25rem 0' }}>
+      <aside className="sidebar" style={{ width:208, minWidth:208, background:'var(--surface)',
+        borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'1.25rem 0',
+        zIndex:1000, transition:'transform 0.2s ease',
+      }}>
         <div style={{ padding:'0 1.25rem 1.25rem', borderBottom:'1px solid var(--border)', marginBottom:'1rem' }}>
           <div style={{ fontWeight:600, fontSize:15, letterSpacing:'-0.02em' }}>⚡ LeadsForger</div>
           <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>Website sales engine</div>
@@ -76,7 +93,7 @@ export default function App() {
             <div style={{ padding:'0.75rem 1.25rem 0.25rem', fontSize:10, letterSpacing:'0.08em',
               textTransform:'uppercase', color:'var(--text3)' }}>{g}</div>
             {NAV.filter(n => n.group === g).map(item => (
-              <button key={item.id} onClick={() => setActive(item.id)} style={{
+              <button key={item.id} onClick={() => { setActive(item.id); setSidebarOpen(false) }} style={{
                 display:'flex', alignItems:'center', gap:9, width:'100%',
                 padding:'8px 1.25rem', background: active===item.id ? 'var(--surface2)' : 'transparent',
                 color: active===item.id ? 'var(--text)' : 'var(--text2)',
@@ -114,6 +131,18 @@ export default function App() {
       </div>
 
       <ToastContainer toasts={toasts} />
+
+      <style>{`
+        @media (max-width: 768px) {
+          .sidebar-toggle { display: block !important; }
+          .sidebar-overlay { display: block !important; }
+          .sidebar {
+            position: fixed !important;
+            top: 0; left: 0; bottom: 0;
+            transform: ${sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'};
+          }
+        }
+      `}</style>
     </div>
   )
 }
