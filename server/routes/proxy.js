@@ -993,11 +993,11 @@ router.post('/enrich/social', async (req, res) => {
       'xrysietairia.eu', 'tiktok.com', 'instagram.com', 'facebook.com'
     ];
 
-    const query = `"${searchName}"`;
+    const query = searchName;
     let searchResults = [];
     try {
       const { data } = await axios.get('https://serpapi.com/search.json', {
-        params: { q: query, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 10 }
+        params: { q: query, api_key: SERP_KEY, engine: 'google', gl: 'gr', hl: 'el', num: 10, location: 'Greece' }
       });
       // Keep all results but mark which are from target sites
       searchResults = (data.organic_results || []).map(item => {
