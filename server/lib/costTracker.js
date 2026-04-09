@@ -14,7 +14,10 @@ const COSTS = {
   textSearch: 0.032,
   placeDetails: 0.017,
   placePhoto: 0.007,
+  cseSearch: 0.005,  // Google Custom Search: free first 100/day, then $5/1000
 };
+
+const CSE_FREE_DAILY = 100;
 
 function ensureDir() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -25,11 +28,13 @@ function ensureDir() {
 function getDefaultData() {
   return {
     total: 0,
-    breakdown: { textSearch: 0, placeDetails: 0, placePhoto: 0 },
-    calls: { textSearch: 0, placeDetails: 0, placePhoto: 0 },
+    breakdown: { textSearch: 0, placeDetails: 0, placePhoto: 0, cseSearch: 0 },
+    calls: { textSearch: 0, placeDetails: 0, placePhoto: 0, cseSearch: 0 },
+    cseDailyCount: 0,
+    cseDailyDate: new Date().toISOString().slice(0, 10),
     resetDate: new Date().toISOString().slice(0, 7),
-    users: {},        // { username: { total, calls, blockedUntil } }
-    blockedUsers: [],  // usernames blocked for the month
+    users: {},
+    blockedUsers: [],
   };
 }
 
@@ -59,7 +64,24 @@ function autoReset(data) {
 
 function addCost(type, username) {
   let data = autoReset(loadCosts());
-  const cost = COSTS[type] || 0;
+
+  // CSE daily free tier reset
+  const today = new Date().toISOString().slice(0, 10);
+  if (data.cseDailyDate !== today) {
+    data.cseDailyCount = 0;
+    data.cseDailyDate = today;
+  }
+
+  let cost = COSTS[type] || 0;
+
+  // CSE: first 100 queries per day are free
+  if (type === 'cseSearch') {
+    data.cseDailyCount = (data.cseDailyCount || 0) + 1;
+    if (data.cseDailyCount <= CSE_FREE_DAILY) {
+      cost = 0; // free tier
+    }
+  }
+
   data.total += cost;
   data.breakdown[type] = (data.breakdown[type] || 0) + cost;
   data.calls[type] = (data.calls[type] || 0) + 1;
@@ -89,7 +111,7 @@ function blockUser(username, reason) {
   if (!data.blockedUsers.includes(username)) {
     data.blockedUsers.push(username);
   }
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || 'unknown';
+  const apiKey = process.env.GOOGLE_SERVICES_API_KEY || 'unknown';
   addSearchLog({ action: 'USER_BLOCKED', username, reason, totalAtBlock: data.total, apiKey });
   saveCosts(data);
 }

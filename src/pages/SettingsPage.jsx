@@ -189,7 +189,7 @@ export default function SettingsPage({ toast, user }) {
                 'Create or select a project',
                 'Search for "Places API" and enable it (the legacy one, not "Places API (New)")',
                 'Go to Credentials → Create API Key',
-                'Copy the key into your .env as GOOGLE_PLACES_API_KEY',
+                'Copy the key into your .env as GOOGLE_SERVICES_API_KEY',
                 'Free tier: $200/month credit — enough for thousands of searches'
               ]
             },

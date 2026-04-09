@@ -121,6 +121,11 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
       } else {
         toast(`✓ Found ${found} contact fields`)
       }
+
+      // Warn if CSE free tier is exhausted
+      if (result.cseWarning) {
+        setTimeout(() => toast(result.cseWarning, 'error'), 1500)
+      }
     } catch (e) {
       toast(e.message, 'error')
     } finally { setEnrichingAI(false) }

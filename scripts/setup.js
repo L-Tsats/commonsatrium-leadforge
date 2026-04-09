@@ -26,7 +26,7 @@ async function main() {
 
   const env = [
     `ANTHROPIC_API_KEY=${anthropic}`,
-    `GOOGLE_PLACES_API_KEY=${google}`,
+    `GOOGLE_SERVICES_API_KEY=${google}`,
     `HUNTER_API_KEY=${hunter}`,
     `SMTP_HOST=${smtpHost}`,
     `SMTP_PORT=${smtpPort}`,

@@ -9,7 +9,7 @@ const path = require('path');
 
 const router = express.Router();
 
-const { addCost, canAfford, isUserBlocked, blockUser, getBudget, addSearchLog, saveSearchState, loadSearchState, clearSearchState } = require('../lib/costTracker');
+const { addCost, canAfford, isUserBlocked, blockUser, getBudget, getCosts, addSearchLog, saveSearchState, loadSearchState, clearSearchState } = require('../lib/costTracker');
 
 // ─── Directory paths ─────────────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ router.post('/places/search', async (req, res) => {
     return res.status(402).json({ error: 'Budget limit reached. Your search access has been suspended.', code: 'BUDGET_EXCEEDED' });
   }
   try {
-    const params = { query, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' };
+    const params = { query, key: process.env.GOOGLE_SERVICES_API_KEY, language: 'en' };
     if (pagetoken) params.pagetoken = pagetoken;
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/textsearch/json', { params });
     addCost('textSearch', username);
@@ -122,7 +122,7 @@ router.post('/places/details', async (req, res) => {
   const fields = 'name,formatted_address,formatted_phone_number,international_phone_number,website,rating,user_ratings_total,reviews,types,url,opening_hours,business_status,photos';
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
-      params: { place_id, fields, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' }
+      params: { place_id, fields, key: process.env.GOOGLE_SERVICES_API_KEY, language: 'en' }
     });
     addCost('placeDetails', username);
     res.json(data);
@@ -145,7 +145,7 @@ router.get('/places/photo', async (req, res) => {
   }
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-      params: { photoreference: ref, maxwidth: maxwidth || 800, key: process.env.GOOGLE_PLACES_API_KEY },
+      params: { photoreference: ref, maxwidth: maxwidth || 800, key: process.env.GOOGLE_SERVICES_API_KEY },
       responseType: 'arraybuffer'
     });
     addCost('placePhoto', username);
@@ -183,7 +183,7 @@ router.post('/analyze/photos', async (req, res) => {
     for (const ref of (photoRefs || [])) {
       try {
         const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-          params: { photoreference: ref, maxwidth: 800, key: process.env.GOOGLE_PLACES_API_KEY },
+          params: { photoreference: ref, maxwidth: 800, key: process.env.GOOGLE_SERVICES_API_KEY },
           responseType: 'arraybuffer'
         });
         images.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: Buffer.from(data).toString('base64') } });
@@ -669,7 +669,7 @@ router.post('/lead-folder/download-photos', async (req, res) => {
     }
     try {
       const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-        params: { photoreference: photoRefs[i], maxwidth: 1200, key: process.env.GOOGLE_PLACES_API_KEY },
+        params: { photoreference: photoRefs[i], maxwidth: 1200, key: process.env.GOOGLE_SERVICES_API_KEY },
         responseType: 'arraybuffer'
       });
       addCost('placePhoto');
@@ -900,7 +900,7 @@ router.post('/enrich/social', async (req, res) => {
   const location = [neighborhood, city].filter(Boolean).join(', ') || address || '';
   const searchName = name.split(' - ')[0].trim();
 
-  const CSE_KEY = process.env.GOOGLE_PLACES_API_KEY;
+  const CSE_KEY = process.env.GOOGLE_SERVICES_API_KEY;
   const CSE_ID = process.env.GOOGLE_CSE_ID;
 
   if (!CSE_ID) {
@@ -922,6 +922,7 @@ router.post('/enrich/social', async (req, res) => {
         link: item.link,
         snippet: item.snippet || ''
       }));
+      addCost('cseSearch', req.session?.user?.username);
     } catch (e) {
       console.error('Google CSE error:', e.response?.data?.error?.message || e.message);
     }
@@ -1042,7 +1043,13 @@ router.post('/enrich/social', async (req, res) => {
 
     console.log('=== ENRICH RESULT:', JSON.stringify(filtered, null, 2), '===');
 
-    res.json({ found: Object.keys(filtered).filter(k => k !== 'notes').length > 0, data: filtered });
+    // Check if CSE free tier is exhausted
+    const costs = getCosts();
+    const cseWarning = (costs.cseDailyCount || 0) >= 100
+      ? `⚠️ You've used ${costs.cseDailyCount}/100 free searches today. Further searches cost $0.005 each.`
+      : null;
+
+    res.json({ found: Object.keys(filtered).filter(k => k !== 'notes').length > 0, data: filtered, cseWarning });
   } catch (e) {
     console.error('Enrichment error:', e.message);
     res.status(500).json({ error: e.message });
@@ -1053,7 +1060,7 @@ router.post('/enrich/social', async (req, res) => {
 
 router.get('/config', (req, res) => {
   res.json({
-    hasGoogle:    !!process.env.GOOGLE_PLACES_API_KEY,
+    hasGoogle:    !!process.env.GOOGLE_SERVICES_API_KEY,
     hasGoogleCSE: !!process.env.GOOGLE_CSE_ID,
     hasPerplexity:!!process.env.PERPLEXITY_API_KEY,
     hasSmtp:      !!process.env.SMTP_HOST && !!process.env.SMTP_USER,

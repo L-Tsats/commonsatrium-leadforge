@@ -23,7 +23,7 @@ app.use('/proxy/screenshots', express.static(SHOTS_DIR))
 app.post('/proxy/places/search', async (req, res) => {
   const { query, pagetoken } = req.body
   try {
-    const params = { query, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' }
+    const params = { query, key: process.env.GOOGLE_SERVICES_API_KEY, language: 'en' }
     if (pagetoken) params.pagetoken = pagetoken
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/textsearch/json', { params })
     res.json(data)
@@ -37,7 +37,7 @@ app.post('/proxy/places/details', async (req, res) => {
   const fields = 'name,formatted_address,formatted_phone_number,international_phone_number,website,rating,user_ratings_total,reviews,types,url,opening_hours,business_status,photos'
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
-      params: { place_id, fields, key: process.env.GOOGLE_PLACES_API_KEY, language: 'en' }
+      params: { place_id, fields, key: process.env.GOOGLE_SERVICES_API_KEY, language: 'en' }
     })
     res.json(data)
   } catch (e) {
@@ -52,7 +52,7 @@ app.get('/proxy/places/photo', async (req, res) => {
   if (!ref) return res.status(400).json({ error: 'Photo reference required' })
   try {
     const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-      params: { photoreference: ref, maxwidth: maxwidth || 800, key: process.env.GOOGLE_PLACES_API_KEY },
+      params: { photoreference: ref, maxwidth: maxwidth || 800, key: process.env.GOOGLE_SERVICES_API_KEY },
       responseType: 'arraybuffer'
     })
     res.set('Content-Type', 'image/jpeg')
@@ -89,7 +89,7 @@ app.post('/proxy/analyze/photos', async (req, res) => {
     for (const ref of (photoRefs || [])) {
       try {
         const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-          params: { photoreference: ref, maxwidth: 800, key: process.env.GOOGLE_PLACES_API_KEY },
+          params: { photoreference: ref, maxwidth: 800, key: process.env.GOOGLE_SERVICES_API_KEY },
           responseType: 'arraybuffer'
         })
         images.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: Buffer.from(data).toString('base64') } })
@@ -566,7 +566,7 @@ app.post('/proxy/lead-folder/download-photos', async (req, res) => {
   for (let i = 0; i < photoRefs.length; i++) {
     try {
       const { data } = await axios.get('https://maps.googleapis.com/maps/api/place/photo', {
-        params: { photoreference: photoRefs[i], maxwidth: 1200, key: process.env.GOOGLE_PLACES_API_KEY },
+        params: { photoreference: photoRefs[i], maxwidth: 1200, key: process.env.GOOGLE_SERVICES_API_KEY },
         responseType: 'arraybuffer'
       })
       const filename = `google-${String(i + 1).padStart(2, '0')}.jpg`
@@ -759,7 +759,7 @@ app.get('/proxy/backup/load', (req, res) => {
 
 app.get('/proxy/config', (req, res) => {
   res.json({
-    hasGoogle:    !!process.env.GOOGLE_PLACES_API_KEY,
+    hasGoogle:    !!process.env.GOOGLE_SERVICES_API_KEY,
     hasPerplexity:!!process.env.PERPLEXITY_API_KEY,
     hasSmtp:      !!process.env.SMTP_HOST && !!process.env.SMTP_USER,
     hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
