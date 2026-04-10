@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { buildAssetsBlock, toSlug } from '../lib/store'
 import { generateBrief } from '../lib/brief'
-import { getLeads, updateLead, getAssets, addAsset, analyzePhotos, refreshLeadPhotos, getLeadImages, downloadLeadPhotos, saveBrief, getAssetManifest, filterManifestForCategory } from '../lib/api'
+import { getLeads, updateLead, getAssets, addAsset, analyzePhotos, refreshLeadPhotos, getLeadImages, downloadLeadPhotos, saveBrief, downloadWorkspace, getAssetManifest, filterManifestForCategory } from '../lib/api'
 import { Btn, Card, PageHeader, Badge, Spinner } from '../components/ui'
 
 const TYPE_META = {
@@ -103,6 +103,17 @@ export default function BriefPage({ toast, onNavigate }) {
         <Btn onClick={handleSaveBrief} disabled={!brief || scaffolding}>
           {scaffolding ? <><Spinner size={12}/> Saving...</> : saved ? '✓ Brief saved' : '💾 Save brief to folder'}
         </Btn>
+        <Btn onClick={async () => {
+          if (!lead) return
+          const slug = lead.slug || toSlug(lead.name)
+          const text = brief || generateBrief(lead, { visionAnalysis: visionAnalysis || undefined, folderPhotos, commonAssets, personalNotes: personalNotes.trim() || undefined, customColors: customColors.length ? customColors : undefined })
+          if (!brief) { setBrief(text); const assetsBlock = buildAssetsBlock(selectedAssets); setBrief(text + assetsBlock) }
+          try {
+            await saveBrief(slug, brief || text)
+            await downloadWorkspace(slug)
+            toast('✓ Workspace downloaded!')
+          } catch (e) { toast(e.message, 'error') }
+        }} disabled={!brief && !sel}>📦 Download workspace</Btn>
         <Btn variant="primary" onClick={generate} disabled={!sel}>Generate →</Btn>
       </PageHeader>
 
