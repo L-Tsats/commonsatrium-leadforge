@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { fillTemplate, SOCIAL_META, toSlug } from '../lib/store'
 import { generateBrief } from '../lib/brief'
-import { updateLead, getTemplates, sendEmail, queueEmail, captureScreenshot, enrichSocial, analyzePhotos, refreshLeadPhotos, downloadLeadPhotos, getLeadImages, getAssetManifest, filterManifestForCategory } from '../lib/api'
+import { updateLead, getTemplates, sendEmail, queueEmail, captureScreenshot, enrichSocial, analyzePhotos, refreshLeadPhotos, downloadLeadPhotos, getLeadImages, getAssetManifest, filterManifestForCategory, saveBrief as saveBriefApi, downloadWorkspace } from '../lib/api'
 import { Btn, Stars, StageBadge, ContactBadge, Spinner, Badge } from './ui'
 import DomainsTab from './DomainsTab'
 
@@ -577,11 +577,9 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                 }}>{copied ? '✓ Copied!' : 'Copy to clipboard'}</Btn>
                 <Btn onClick={async () => {
                   const slug = lead.slug || toSlug(lead.name)
-                  // Save brief first
                   const text = brief || generateBrief(lead, { visionAnalysis: visionAnalysis || undefined, folderPhotos, commonAssets })
                   if (!brief) setBrief(text)
                   try {
-                    const { saveBrief: saveBriefApi, downloadWorkspace } = await import('../lib/api.js')
                     await saveBriefApi(slug, text)
                     await downloadWorkspace(slug)
                     toast('✓ Workspace downloaded!')
