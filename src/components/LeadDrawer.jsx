@@ -564,7 +564,7 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
 
               <pre style={{ background:'var(--surface2)', borderRadius:'var(--r)', padding:'1rem',
                 fontSize:11.5, fontFamily:'var(--mono)', lineHeight:1.7, whiteSpace:'pre-wrap',
-                wordBreak:'break-word', maxHeight:460, overflowY:'auto' }}>
+                wordBreak:'break-word', overflowY:'auto' }}>
                 {brief || generateBrief(lead, { visionAnalysis: visionAnalysis || undefined, folderPhotos, commonAssets })}
               </pre>
               <div style={{ display:'flex', gap:8, marginTop:'1rem' }}>
