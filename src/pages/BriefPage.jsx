@@ -114,22 +114,29 @@ export default function BriefPage({ toast, onNavigate }) {
             <div style={{ fontSize:11, color:'var(--text2)', marginBottom:'0.75rem', fontWeight:500 }}>1. Select a lead</div>
             <input value={leadSearch} onChange={e => setLeadSearch(e.target.value)}
               placeholder="Search leads..." style={{ marginBottom:6, fontSize:12 }} />
-            <select value={sel} onChange={e => {
-              const id = e.target.value
-              setSel(id); setBrief(''); setSaved(false)
-              const l = leads.find(x => x.id === id)
-              setVisionAnalysis(l?.visionAnalysis || '')
-              if (l) loadFolderImages(l.slug || toSlug(l.name))
-              else { setFolderPhotos([]); setFolderAssets([]) }
-              if (l) getAssetManifest().then(m => setCommonAssets(filterManifestForCategory(m, l.category))).catch(() => setCommonAssets([]))
-              else setCommonAssets([])
-            }}
-              style={{ marginBottom: lead ? '1rem' : 0 }}>
-              <option value="">— choose —</option>
+            <div style={{ maxHeight:200, overflowY:'auto', border:'1px solid var(--border)', borderRadius:'var(--r)' }}>
               {leads
                 .filter(l => !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.category?.toLowerCase().includes(leadSearch.toLowerCase()) || l.neighborhood?.toLowerCase().includes(leadSearch.toLowerCase()))
-                .map(l => <option key={l.id} value={l.id}>{l.name} ({l.neighborhood})</option>)}
-            </select>
+                .map(l => (
+                  <div key={l.id} onClick={() => {
+                    setSel(l.id); setBrief(''); setSaved(false); setLeadSearch('')
+                    setVisionAnalysis(l?.visionAnalysis || '')
+                    loadFolderImages(l.slug || toSlug(l.name))
+                    getAssetManifest().then(m => setCommonAssets(filterManifestForCategory(m, l.category))).catch(() => setCommonAssets([]))
+                  }} style={{
+                    padding:'6px 10px', fontSize:12, cursor:'pointer',
+                    background: sel === l.id ? 'var(--surface2)' : 'transparent',
+                    borderBottom:'1px solid var(--border)',
+                  }}>
+                    <div style={{ fontWeight: sel === l.id ? 500 : 400 }}>{l.name}</div>
+                    <div style={{ fontSize:10, color:'var(--text3)' }}>{l.category} · {l.neighborhood}</div>
+                  </div>
+                ))
+              }
+              {leads.filter(l => !leadSearch || l.name?.toLowerCase().includes(leadSearch.toLowerCase()) || l.category?.toLowerCase().includes(leadSearch.toLowerCase()) || l.neighborhood?.toLowerCase().includes(leadSearch.toLowerCase())).length === 0 && (
+                <div style={{ padding:'10px', fontSize:12, color:'var(--text3)', textAlign:'center' }}>No leads match</div>
+              )}
+            </div>
             {lead && (
               <div style={{ fontSize:12, color:'var(--text2)', lineHeight:1.7,
                 borderTop:'1px solid var(--border)', paddingTop:'0.75rem' }}>
