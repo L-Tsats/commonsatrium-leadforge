@@ -264,6 +264,17 @@ export async function saveBrief(slug, brief) {
   return post('/api/lead-folder/save-brief', { slug, brief })
 }
 
+export async function downloadWorkspace(slug) {
+  const res = await apiFetch(`/api/lead-folder/download-workspace?slug=${encodeURIComponent(slug)}`)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${slug}-workspace.zip`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ── Higher-level helpers (preserved from old api.js) ────────────────────────
 
 export async function refreshLeadPhotos(lead) {

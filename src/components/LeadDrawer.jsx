@@ -575,6 +575,18 @@ export default function LeadDrawer({ lead: init, onClose, onUpdate, toast }) {
                   setCopied(true); setTimeout(()=>setCopied(false),1800)
                   toast('Brief copied!')
                 }}>{copied ? '✓ Copied!' : 'Copy to clipboard'}</Btn>
+                <Btn onClick={async () => {
+                  const slug = lead.slug || toSlug(lead.name)
+                  // Save brief first
+                  const text = brief || generateBrief(lead, { visionAnalysis: visionAnalysis || undefined, folderPhotos, commonAssets })
+                  if (!brief) setBrief(text)
+                  try {
+                    const { saveBrief: saveBriefApi, downloadWorkspace } = await import('../lib/api.js')
+                    await saveBriefApi(slug, text)
+                    await downloadWorkspace(slug)
+                    toast('✓ Workspace downloaded!')
+                  } catch (e) { toast(e.message, 'error') }
+                }}>📦 Download workspace</Btn>
                 <Btn variant="primary" onClick={() => save({ stage:'in_progress' })}>
                   Mark In Progress
                 </Btn>

@@ -694,6 +694,50 @@ router.post('/lead-folder/save-brief', (req, res) => {
   res.json({ ok: true });
 });
 
+// Download workspace zip — photos + brief + common assets for a lead
+router.get('/lead-folder/download-workspace', async (req, res) => {
+  const { slug } = req.query;
+  if (!slug) return res.status(400).json({ error: 'slug required' });
+
+  const archiver = require('archiver');
+  const leadDir = path.join(SITES_DIR, slug);
+
+  if (!fs.existsSync(leadDir)) {
+    return res.status(404).json({ error: 'Lead folder not found' });
+  }
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${slug}-workspace.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 5 } });
+  archive.pipe(res);
+
+  // Add photos/ folder
+  const photosDir = path.join(leadDir, 'photos');
+  if (fs.existsSync(photosDir)) {
+    archive.directory(photosDir, 'photos');
+  }
+
+  // Add BRIEF.md if it exists
+  const briefPath = path.join(leadDir, 'BRIEF.md');
+  if (fs.existsSync(briefPath)) {
+    archive.file(briefPath, { name: 'BRIEF.md' });
+  }
+
+  // Add common-assets that match (already filtered by category on the client)
+  if (fs.existsSync(COMMON_DIR)) {
+    const manifest = loadManifest();
+    for (const [filename, meta] of Object.entries(manifest)) {
+      const filePath = path.join(COMMON_DIR, meta.category, filename);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: `common-assets/${meta.category}/${filename}` });
+      }
+    }
+  }
+
+  archive.finalize();
+});
+
 // ─── Common Assets — inbox sorting via Claude vision ─────────────────────────
 
 // List inbox files
